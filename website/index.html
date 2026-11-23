@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peek — Native macOS Menu Bar System Monitor, Disk Analyzer &amp; App Uninstaller</title>
+  <meta name="description" content="A lightweight, 100% native macOS menu bar app for real-time hardware telemetry, visual disk &amp; AI Agent footprint analysis, and clean app uninstallation." />
+  <meta name="theme-color" content="#0b0f17" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://peek.yuntianyou.cc/" />
+  <meta property="og:title" content="Peek — Native macOS Menu Bar Monitor &amp; Analyzer" />
+  <meta property="og:description" content="Real-time 6-card Bento telemetry, streaming squarified disk &amp; AI Agent analyzer, and smart app uninstaller. 100% native Swift &amp; SwiftUI." />
+  <meta property="og:image" content="https://peek.yuntianyou.cc/assets/storage.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Peek — Native macOS Menu Bar Monitor &amp; Analyzer" />
+  <meta name="twitter:description" content="Real-time 6-card Bento telemetry, visual disk &amp; AI Agent analyzer, and clean app uninstaller for macOS 14+." />
+  <meta name="twitter:image" content="https://peek.yuntianyou.cc/assets/storage.png" />
+
+  <link rel="icon" type="image/png" href="./assets/favicon.png" />
+  <link rel="apple-touch-icon" href="./assets/icon-512.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Ambient Background Glow -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="orb orb-emerald"></div>
+    <div class="orb orb-blue"></div>
+    <div class="orb orb-coral"></div>
+  </div>
+
+  <!-- Navigation -->
+  <header class="navbar" id="top">
+    <div class="container nav-inner">
+      <a href="#top" class="brand">
+        <img src="./assets/icon-512.png" alt="Peek Icon" class="brand-icon" width="32" height="32" />
+        <span class="brand-name">Peek</span>
+        <span class="version-pill" id="nav-version">v0.1.3</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features" data-i18n="nav.features">功能特性</a>
+        <a href="#analyze" data-i18n="nav.analyze">磁盘与 Agent</a>
+        <a href="#uninstall" data-i18n="nav.uninstall">应用卸载</a>
+        <a href="#install" data-i18n="nav.install">安装指南</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="lang-toggle" id="lang-toggle" type="button" aria-label="Switch Language">
+          <span class="lang-opt" data-lang-opt="zh">中</span>
+          <span class="lang-sep">/</span>
+          <span class="lang-opt" data-lang-opt="en">EN</span>
+        </button>
+        <a href="https://github.com/athlan20/peek" target="_blank" rel="noopener noreferrer" class="icon-btn" aria-label="GitHub Repository" title="GitHub">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+        </a>
+        <a href="#install" class="btn btn-sm btn-primary" data-i18n="nav.download">下载</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="pulse-dot"></span>
+            <span data-i18n="hero.eyebrow">macOS 14+ · 100% 原生 Swift &amp; SwiftUI · 开源免费</span>
+          </div>
+
+          <h1 class="hero-title" data-i18n="hero.title">
+            轻点菜单栏，<br />洞悉 Mac 的每一寸状态。
+          </h1>
+
+          <p class="hero-subtitle" data-i18n="hero.subtitle">
+            常驻于 macOS 菜单栏的高密度暗色 Bento 监控面板，集成实时硬件遥测、交互式磁盘与 AI Agent 空间方块分析，以及支持残留清理的应用卸载器。零外部依赖，后台接近零开销。
+          </p>
+
+          <div class="hero-cta">
+            <a id="dl-arm64" href="https://github.com/athlan20/peek/releases/latest" class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="btn-text">
+                <span data-i18n="hero.dlArm">下载 Apple Silicon 版</span>
+                <small id="dl-arm64-meta">arm64 · .dmg</small>
+              </span>
+            </a>
+
+            <a id="dl-x86" href="https://github.com/athlan20/peek/releases/latest" class="btn btn-secondary btn-lg">
+              <span class="btn-text">
+                <span data-i18n="hero.dlIntel">Intel Mac 版</span>
+                <small id="dl-x86-meta">x86_64 · .dmg</small>
+              </span>
+            </a>
+          </div>
+
+          <div class="hero-meta">
+            <span id="release-meta" data-i18n="hero.releaseLoading">最新版本：v0.1.3 · 支持 macOS 14 Sonoma 及以上</span>
+            <span class="meta-dot">·</span>
+            <a href="https://github.com/athlan20/peek/releases" target="_blank" rel="noopener noreferrer" data-i18n="hero.allReleases">所有版本 ↗</a>
+          </div>
+
+          <div class="trust-strip">
+            <div class="trust-item">
+              <span class="trust-value">Swift 6</span>
+              <span class="trust-label" data-i18n="trust.native">原生 Darwin / IOKit</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-value">~0%</span>
+              <span class="trust-label" data-i18n="trust.idle">收起后后台占用</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-value">19+</span>
+              <span class="trust-label" data-i18n="trust.agents">AI Agent 占用识别</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-value">No Root</span>
+              <span class="trust-label" data-i18n="trust.noRoot">无需管理员权限</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="panel-stage">
+            <div class="panel-glow" aria-hidden="true"></div>
+            <button type="button" class="screenshot-trigger panel-frame" data-lightbox="./assets/panel.png" data-caption-zh="Peek 6 卡片 Bento 菜单栏监控面板" data-caption-en="Peek 6-Card Bento Menu Bar Telemetry Panel" aria-label="Preview Bento Panel">
+              <img src="./assets/panel.png" alt="Peek Menu Bar Bento Panel" class="panel-img" width="438" height="605" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6-Card Bento Telemetry Section -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-kicker" data-i18n="bento.kicker">BENTO 菜单栏面板</span>
+          <h2 class="section-title" data-i18n="bento.title">6 张卡片，一屏看清所有核心硬件指标</h2>
+          <p class="section-desc" data-i18n="bento.desc">
+            拒绝杂乱的二级菜单。打开弹出面板即刻高频采样，收起瞬间归零休眠；悬停任意卡片还可展开精简细节。
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          <!-- CPU -->
+          <article class="bento-card card-cpu reveal">
+            <div class="card-head">
+              <span class="card-tag">CPU</span>
+              <span class="card-badge" data-i18n="bento.cpu.badge">P/E 核心矩阵</span>
+            </div>
+            <h3 data-i18n="bento.cpu.title">处理器与进程方块</h3>
+            <p data-i18n="bento.cpu.desc">
+              实时展示总占用率、性能核与能效核（P/E Cores）负载点阵，以及高占用进程的迷你方块图，异常飙升一眼定位。
+            </p>
+            <div class="mini-bar"><span style="width: 34%"></span></div>
+          </article>
+
+          <!-- Memory -->
+          <article class="bento-card card-mem reveal">
+            <div class="card-head">
+              <span class="card-tag">MEM</span>
+              <span class="card-badge" data-i18n="bento.mem.badge">压力 &amp; Swap</span>
+            </div>
+            <h3 data-i18n="bento.mem.title">对齐活动监视器的内存视图</h3>
+            <p data-i18n="bento.mem.desc">
+              与 macOS 活动监视器口径一致的已用 / 总内存统计，配备内存压力与 Swap 指示灯，直观列出最吃内存的应用。
+            </p>
+            <div class="mini-bar"><span style="width: 78%"></span></div>
+          </article>
+
+          <!-- Storage -->
+          <article class="bento-card card-storage reveal">
+            <div class="card-head">
+              <span class="card-tag">STORAGE</span>
+              <span class="card-badge" data-i18n="bento.storage.badge">读写速率 &amp; 分类</span>
+            </div>
+            <h3 data-i18n="bento.storage.title">存储容量像素矩阵</h3>
+            <p data-i18n="bento.storage.desc">
+              实时监测磁盘读写吞吐（R/W MB/s），用像素点阵按 system、Apps、user、cache、free 清晰呈现空间分布。
+            </p>
+            <div class="pixel-row" aria-hidden="true">
+              <span class="px px-green"></span><span class="px px-green"></span><span class="px px-green"></span>
+              <span class="px px-blue"></span><span class="px px-blue"></span><span class="px px-blue"></span><span class="px px-blue"></span>
+              <span class="px px-amber"></span><span class="px px-amber"></span>
+              <span class="px px-dim"></span><span class="px px-dim"></span><span class="px px-dim"></span><span class="px px-dim"></span>
+            </div>
+          </article>
+
+          <!-- Network -->
+          <article class="bento-card card-network reveal">
+            <div class="card-head">
+              <span class="card-tag">NETWORK</span>
+              <span class="card-badge" data-i18n="bento.network.badge">本地端口识别</span>
+            </div>
+            <h3 data-i18n="bento.network.title">网速与监听端口表</h3>
+            <p data-i18n="bento.network.desc">
+              展示默认网卡实时上下行速率，并自动扫描本地监听端口与服务分类（Web、AI、DB、Proxy，如 node、ollama 等）。
+            </p>
+            <div class="port-pills" aria-hidden="true">
+              <span>:8080 <b>WEB</b></span>
+              <span>:11434 <b>AI</b></span>
+              <span>:5432 <b>DB</b></span>
+            </div>
+          </article>
+
+          <!-- Battery -->
+          <article class="bento-card card-battery reveal">
+            <div class="card-head">
+              <span class="card-tag">BATTERY</span>
+              <span class="card-badge" data-i18n="bento.battery.badge">USB-C PD &amp; 功耗</span>
+            </div>
+            <h3 data-i18n="bento.battery.title">电池健康与实时功耗</h3>
+            <p data-i18n="bento.battery.desc">
+              电量、循环次数、四格健康度矩阵一目了然；同时读取 USB-C PD 充电器功率规格与整机实时功耗（W）。
+            </p>
+            <div class="mini-bar"><span style="width: 82%"></span></div>
+          </article>
+
+          <!-- Temperature -->
+          <article class="bento-card card-thermal reveal">
+            <div class="card-head">
+              <span class="card-tag">TEMPERATURE</span>
+              <span class="card-badge" data-i18n="bento.thermal.badge">温控 &amp; 风扇</span>
+            </div>
+            <h3 data-i18n="bento.thermal.title">多传感器温度与转速</h3>
+            <p data-i18n="bento.thermal.desc">
+              实时读取 CPU、GPU、SSD 温度柱状条（°C）、温控状态徽标、风扇转速（RPM）以及运行期间的峰值温度记录。
+            </p>
+            <div class="mini-bar"><span style="width: 62%"></span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase 1: Analyze & AI Agents -->
+    <section class="section section-alt" id="analyze">
+      <div class="container">
+        <div class="showcase-header reveal">
+          <span class="section-kicker kicker-emerald" data-i18n="analyze.kicker">ANALYZE · 磁盘与 AI AGENT 空间分析</span>
+          <h2 class="section-title" data-i18n="analyze.title">边扫边画的方块视图，揪出隐藏的体积大户</h2>
+          <p class="section-desc" data-i18n="analyze.desc">
+            纯 Swift 实现的 Squarified Treemap 布局引擎，每 0.2 秒实时刷新快照，无需等整盘扫完即可双击逐层下钻。支持断点暂停与持久化缓存，关闭窗口也不丢失进度。
+          </p>
+        </div>
+
+        <div class="window-showcase reveal">
+          <button type="button" class="screenshot-trigger window-frame" data-lightbox="./assets/storage.png" data-caption-zh="Peek 磁盘与 AI Agent 空间分析方块视图" data-caption-en="Peek Interactive Storage &amp; AI Agent Treemap" aria-label="Preview Storage Analyzer">
+            <img src="./assets/storage.png" alt="Peek Storage Analyzer Treemap" loading="lazy" width="1892" height="1116" />
+          </button>
+        </div>
+
+        <div class="feature-trio reveal">
+          <div class="info-card">
+            <h3 data-i18n="analyze.f1.title">流式扫描 &amp; 断点续扫</h3>
+            <p data-i18n="analyze.f1.desc">扫描检查点自动持久化至本地缓存。随时暂停、关闭窗口或重启应用，下次打开无缝接着扫。</p>
+          </div>
+          <div class="info-card">
+            <h3 data-i18n="analyze.f2.title">语义化自动着色</h3>
+            <p data-i18n="analyze.f2.desc">自动区分 Apps、Dev（node_modules、DerivedData、.cargo 等）、Agents、Media、Docs 与 System，一眼辨识可清理项。</p>
+          </div>
+          <div class="info-card">
+            <h3 data-i18n="analyze.f3.title">久置下载专项清理</h3>
+            <p data-i18n="analyze.f3.desc">独立筛选 ~/Downloads 中超过 90 天未碰过的大文件与安装包，一键在访达中定位或安全移入废纸篓。</p>
+          </div>
+        </div>
+
+        <!-- AI Agent Footprint Strip -->
+        <div class="agents-panel reveal">
+          <div class="agents-head">
+            <div>
+              <h3 data-i18n="analyze.agentsTitle">内置 19+ 主流 AI 编程工具与本地模型占用专页</h3>
+              <p data-i18n="analyze.agentsDesc">自动聚合散落在主目录与资源库中的模型权重、缓存与会话记录：</p>
+            </div>
+            <span class="agents-count">19+ AI Tools</span>
+          </div>
+          <div class="agent-tags">
+            <span>Claude Code</span>
+            <span>Codex</span>
+            <span>Gemini CLI</span>
+            <span>Cursor</span>
+            <span>Windsurf</span>
+            <span>Ollama</span>
+            <span>LM Studio</span>
+            <span>Hugging Face</span>
+            <span>GitHub Copilot</span>
+            <span>Kiro</span>
+            <span>Trae</span>
+            <span>Aider</span>
+            <span>Continue</span>
+            <span>opencode</span>
+            <span>Qwen Code</span>
+            <span>T3 Code</span>
+            <span>pi</span>
+            <span>WorkBuddy</span>
+            <span>CodeBuddy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase 2: Smart App Uninstaller -->
+    <section class="section" id="uninstall">
+      <div class="container">
+        <div class="showcase-header reveal">
+          <span class="section-kicker kicker-coral" data-i18n="uninstall.kicker">UNINSTALL · 可视化应用卸载器</span>
+          <h2 class="section-title" data-i18n="uninstall.title">按体积排布、按使用频率着色，连同残留一并清干净</h2>
+          <p class="section-desc" data-i18n="uninstall.desc">
+            扫描 /Applications 与 ~/Applications，根据 Spotlight 最后使用时间（7 天内 → 1 年以上）为每个应用方块着色，帮你迅速找出又大又久未打开的软件。
+          </p>
+        </div>
+
+        <div class="window-showcase reveal">
+          <button type="button" class="screenshot-trigger window-frame frame-coral" data-lightbox="./assets/uninstall.png" data-caption-zh="Peek 可视化应用卸载器与残留预览" data-caption-en="Peek Visual App Uninstaller &amp; Leftover Scanner" aria-label="Preview App Uninstaller">
+            <img src="./assets/uninstall.png" alt="Peek App Uninstaller Treemap" loading="lazy" width="2024" height="1248" />
+          </button>
+        </div>
+
+        <div class="feature-trio reveal">
+          <div class="info-card">
+            <h3 data-i18n="uninstall.f1.title">深层 ~/Library 残留关联</h3>
+            <p data-i18n="uninstall.f1.desc">按 Bundle ID 与应用名精准匹配 Application Support、Caches、Preferences、Containers、Saved State、Logs 等关联目录。</p>
+          </div>
+          <div class="info-card">
+            <h3 data-i18n="uninstall.f2.title">多重安全防误删</h3>
+            <p data-i18n="uninstall.f2.desc">系统内置应用与 Peek 自身自动加锁；运行中的应用标有运行角标并提示先退出，避免误操作。</p>
+          </div>
+          <div class="info-card">
+            <h3 data-i18n="uninstall.f3.title">先预览，统一移至废纸篓</h3>
+            <p data-i18n="uninstall.f3.desc">每次卸载都会完整列出即将清理的路径与体积，确认后统一移入废纸篓而非永久静默删除，随时可反悔。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Engineering & Security Strip -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-kicker kicker-blue" data-i18n="arch.kicker">原生架构与隐私安全</span>
+          <h2 class="section-title" data-i18n="arch.title">轻巧克制，把控制权完全留给你</h2>
+        </div>
+
+        <div class="principles-grid reveal">
+          <div class="principle-card">
+            <div class="principle-icon icon-emerald">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h3 data-i18n="arch.p1.title">零后台常驻开销</h3>
+            <p data-i18n="arch.p1.desc">仅在面板展开时进行高频采样，收起后立即停止采集，日常挂在菜单栏几乎不消耗电量与 CPU。</p>
+          </div>
+
+          <div class="principle-card">
+            <div class="principle-icon icon-blue">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 data-i18n="arch.p2.title">权限优雅降级</h3>
+            <p data-i18n="arch.p2.desc">全程以普通用户运行，无需管理员密码；完全磁盘访问权限（FDA）完全可选，未授权也能正常使用核心功能。</p>
+          </div>
+
+          <div class="principle-card">
+            <div class="principle-icon icon-amber">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 data-i18n="arch.p3.title">双重校验在线更新</h3>
+            <p data-i18n="arch.p3.desc">内置 GitHub Releases 更新器，自动匹配芯片架构，下载后同时校验 SHA-256 摘要与代码签名证书指纹。</p>
+          </div>
+
+          <div class="principle-card">
+            <div class="principle-icon icon-coral">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3 data-i18n="arch.p4.title">中英双语即时切换</h3>
+            <p data-i18n="arch.p4.desc">应用内置简体中文、English 与跟随系统选项，设置中切换后立即生效，无需重启应用。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download & Installation Guide -->
+    <section class="section" id="install">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-kicker" data-i18n="install.kicker">下载与安装</span>
+          <h2 class="section-title" data-i18n="install.title">30 秒装好，即刻在菜单栏启用 Peek</h2>
+          <p class="section-desc" data-i18n="install.desc">支持 macOS 14.0 (Sonoma) 及以上版本，提供 Apple Silicon 与 Intel 独立安装包。</p>
+        </div>
+
+        <div class="install-grid reveal">
+          <!-- Download Card -->
+          <div class="install-card">
+            <div class="install-card-head">
+              <span class="step-badge">01</span>
+              <h3 data-i18n="install.downloadTitle">下载安装包</h3>
+            </div>
+            <p class="install-desc" data-i18n="install.downloadDesc">
+              选择匹配你 Mac 芯片的 .dmg 安装包，打开后将 Peek 拖入“应用程序（Applications）”文件夹即可。
+            </p>
+
+            <div class="download-stack">
+              <a id="install-dl-arm64" href="https://github.com/athlan20/peek/releases/latest" class="dl-row">
+                <div>
+                  <strong data-i18n="install.armTitle">Apple Silicon (M1 / M2 / M3 / M4)</strong>
+                  <span id="install-dl-arm64-file">Peek-0.1.3-arm64.dmg</span>
+                </div>
+                <span class="dl-pill">arm64 ↓</span>
+              </a>
+
+              <a id="install-dl-x86" href="https://github.com/athlan20/peek/releases/latest" class="dl-row">
+                <div>
+                  <strong data-i18n="install.intelTitle">Intel Mac (x86_64)</strong>
+                  <span id="install-dl-x86-file">Peek-0.1.3-x86_64.dmg</span>
+                </div>
+                <span class="dl-pill">x86_64 ↓</span>
+              </a>
+            </div>
+
+            <div class="install-links">
+              <a href="https://github.com/athlan20/peek/releases" target="_blank" rel="noopener noreferrer" data-i18n="install.checksums">查看 Release 说明与 SHA256SUMS ↗</a>
+              <a href="https://github.com/athlan20/peek#building-from-source" target="_blank" rel="noopener noreferrer" data-i18n="install.fromSource">从源码构建 ↗</a>
+            </div>
+          </div>
+
+          <!-- Gatekeeper Card -->
+          <div class="install-card">
+            <div class="install-card-head">
+              <span class="step-badge badge-amber">02</span>
+              <h3 data-i18n="install.gatekeeperTitle">首次打开说明（Gatekeeper）</h3>
+            </div>
+            <p class="install-desc" data-i18n="install.gatekeeperDesc">
+              Peek 采用固定的自签名证书签名（以保证后续在线更新时系统隐私授权不会丢失），未走 Apple 公证。首次打开遇到系统拦截时，只需操作一次：
+            </p>
+
+            <ol class="gatekeeper-steps">
+              <li data-i18n="install.step1">在弹窗中点击 <strong>“完成”</strong>（不要点“移到废纸篓”）。</li>
+              <li data-i18n="install.step2">前往 <strong>系统设置 → 隐私与安全性</strong>，向下滚动到“安全性”区域，点击 Peek 旁的 <strong>“仍要打开”</strong>。</li>
+              <li data-i18n="install.step3">使用触控 ID 或密码确认，再次打开 Peek 即可正常使用。</li>
+            </ol>
+
+            <div class="code-box">
+              <div class="code-box-head">
+                <span data-i18n="install.terminalTip">或在终端移除隔离标记：</span>
+                <button type="button" class="copy-btn" data-copy="xattr -dr com.apple.quarantine /Applications/Peek.app">
+                  <span data-i18n="install.copy">复制</span>
+                </button>
+              </div>
+              <code>xattr -dr com.apple.quarantine /Applications/Peek.app</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/icon-512.png" alt="Peek" width="28" height="28" />
+        <div>
+          <strong>Peek</strong>
+          <p data-i18n="footer.tagline">轻量、原生的 macOS 菜单栏系统监控与清理工具</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/athlan20/peek" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/athlan20/peek/releases" target="_blank" rel="noopener noreferrer" data-i18n="footer.releases">版本发布</a>
+        <a href="https://github.com/athlan20/peek/issues" target="_blank" rel="noopener noreferrer" data-i18n="footer.issues">问题反馈</a>
+        <a href="https://linux.do/" target="_blank" rel="noopener noreferrer">Linux.do</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <span data-i18n="footer.origin">项目首发于 Linux.do 社区 · Built with native Swift &amp; SwiftUI</span>
+      <span>peek.yuntianyou.cc</span>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-modal="true">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close preview">✕</button>
+    <figure class="lightbox-figure">
+      <img id="lightbox-img" src="" alt="" />
+      <figcaption id="lightbox-caption"></figcaption>
+    </figure>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
