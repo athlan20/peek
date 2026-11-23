@@ -41,7 +41,7 @@ struct PanelView: View {
                     ports: snapshot.listeningPorts
                 )
             }
-            .frame(height: 162)
+            .frame(height: 168)
 
             // 第三行：BATTERY（含整机实时功耗与适配器规格）+ 纯只读 THERMAL（温度趋势柱）
             HStack(spacing: 10) {
@@ -54,7 +54,7 @@ struct PanelView: View {
                     history: monitor.thermalHistory
                 )
             }
-            .frame(height: 114)
+            .frame(height: 118)
 
             // 功能入口：Analyze / Uninstall
             actionsRow

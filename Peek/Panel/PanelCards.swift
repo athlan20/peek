@@ -967,7 +967,7 @@ private struct PortRowPill: View {
                 }
             }
             .padding(.horizontal, 6)
-            .frame(height: 20)
+            .frame(height: 18.5)
             .background {
                 shape.fill(isHovered ? color.opacity(0.16) : Color.white.opacity(0.04))
             }
@@ -1344,9 +1344,9 @@ struct CompactThermalCard: View {
             isAlert: isAlert,
             isHovered: isHovered
         ) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
-                    Text("THERMAL")
+                    Text("TEMPERATURE")
                         .font(.system(size: 11, weight: .semibold))
                         .tracking(0.4)
                         .foregroundStyle(PanelPalette.textPrimary)
@@ -1364,13 +1364,14 @@ struct CompactThermalCard: View {
                     }
                 }
 
+                Spacer(minLength: 0)
+
                 // CPU / GPU / SSD 三路直观温度条（20°C ~ 100°C 刻度，温区渐变着色）
-                VStack(spacing: 6) {
+                VStack(spacing: 5) {
                     sensorGaugeRow(label: "CPU", celsius: stats.temperatureCelsius, warnAt: 62, hotAt: MetricThreshold.thermalCelsius)
                     sensorGaugeRow(label: "GPU", celsius: stats.gpuTemperatureCelsius, warnAt: 62, hotAt: MetricThreshold.thermalCelsius)
                     sensorGaugeRow(label: "SSD", celsius: stats.ssdTemperatureCelsius, warnAt: 52, hotAt: 68)
                 }
-                .padding(.vertical, 2)
 
                 Spacer(minLength: 0)
 
@@ -1493,7 +1494,7 @@ struct NetworkPortsCard: View {
             topGlow: PanelPalette.networkGlow,
             isHovered: isHovered
         ) {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 5) {
                     Text("NETWORK")
                         .font(.system(size: 11, weight: .semibold))

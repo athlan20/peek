@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings 独立窗口：沿用暗色 Bento 视觉风格，只保留核心设置项（刷新间隔、开机启动、完全磁盘访问、最近记录）。
+/// Settings 独立窗口：沿用暗色 Bento 视觉风格，只保留核心设置项（刷新间隔、开机启动、完全磁盘访问）。
 struct SettingsView: View {
     @State private var model = SettingsModel()
 
@@ -9,11 +9,10 @@ struct SettingsView: View {
             VStack(spacing: 12) {
                 generalCard
                 fullDiskAccessCard
-                historyCard
             }
             .padding(14)
         }
-        .frame(minWidth: 480, minHeight: 380)
+        .frame(minWidth: 460, minHeight: 240)
         .background(PanelPalette.panelBackground)
         .toolbarBackground(PanelPalette.panelBackground, for: .windowToolbar)
         .preferredColorScheme(.dark)
@@ -157,79 +156,6 @@ struct SettingsView: View {
             .padding(2)
         }
     }
-
-    // MARK: - 最近的历史记录
-
-    private var historyCard: some View {
-        let entries = Array(HistoryStore.shared.entries.prefix(10))
-
-        return BentoCard(borderColor: PanelPalette.storageBorder, topGlow: PanelPalette.storageGlow) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("RECENT HISTORY")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(0.4)
-                    .foregroundStyle(PanelPalette.textSecondary)
-
-                if entries.isEmpty {
-                    Text("No history yet.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(PanelPalette.textMuted)
-                        .padding(.vertical, 6)
-                } else {
-                    VStack(spacing: 6) {
-                        ForEach(entries) { entry in
-                            historyRow(entry)
-                        }
-                    }
-                }
-            }
-            .padding(2)
-        }
-    }
-
-    private func historyRow(_ entry: HistoryEntry) -> some View {
-        HStack(spacing: 10) {
-            Text(kindTitle(entry.kind))
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(PanelPalette.textPrimary)
-                .frame(width: 72, alignment: .leading)
-            Text(verbatim: Self.relativeFormatter.localizedString(for: entry.date, relativeTo: Date()))
-                .font(.system(size: 11))
-                .foregroundStyle(PanelPalette.textMuted)
-            Spacer(minLength: 8)
-            Text("\(entry.itemCount) items")
-                .font(.system(size: 11))
-                .foregroundStyle(PanelPalette.textSecondary)
-            if entry.freedBytes > 0 {
-                Text(verbatim: Int64(clamping: entry.freedBytes).formatted(.byteCount(style: .file)))
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(PanelPalette.cpuAccent)
-            }
-            if entry.failedCount > 0 {
-                Text("\(entry.failedCount) failed")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PanelPalette.thermalAccent)
-            }
-        }
-        .monospacedDigit()
-        .lineLimit(1)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Color.white.opacity(0.03))
-        }
-    }
-
-    private func kindTitle(_ kind: HistoryKind) -> LocalizedStringKey {
-        switch kind {
-        case .clean: "Clean"
-        case .uninstall: "Uninstall"
-        case .optimize: "Optimize"
-        }
-    }
-
-    private static let relativeFormatter = RelativeDateTimeFormatter()
 }
 
 private struct SettingsPillButton: View {
