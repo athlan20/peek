@@ -98,8 +98,18 @@ for arch in "${archs[@]}"; do
   artifacts+=("dist/$name.dmg" "dist/$name.zip")
 done
 
+echo "== 生成 SHA256SUMS.txt"
+(
+  cd dist
+  basenames=()
+  for f in "${artifacts[@]}"; do
+    basenames+=("$(basename "$f")")
+  done
+  shasum -a 256 "${basenames[@]}" > SHA256SUMS.txt
+)
+
 echo "== 完成"
-ls -lh "${artifacts[@]}"
-shasum -a 256 "${artifacts[@]}"
+ls -lh "${artifacts[@]}" dist/SHA256SUMS.txt
+cat dist/SHA256SUMS.txt
 [[ $adhoc -eq 1 ]] && echo "（这是临时签名的试打包，不要发给用户）"
 exit 0

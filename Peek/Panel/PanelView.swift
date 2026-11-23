@@ -7,6 +7,8 @@ struct PanelView: View {
 
     /// 系统状态，面板只读它。
     var monitor: SystemMonitor = .shared
+    /// 在线更新状态（默认每 24 小时静默检查一次 GitHub Releases）。
+    var updater: UpdateManager = .shared
 
     @State private var refreshRotation: Double = 0
 
@@ -76,6 +78,9 @@ struct PanelView: View {
         .background {
             PanelVisibilityReader { visible in
                 monitor.setMode(visible ? .panelOpen : .background)
+                if visible {
+                    updater.checkOnLaunchIfNeeded()
+                }
             }
         }
     }
@@ -107,6 +112,29 @@ struct PanelView: View {
             }
 
             Spacer()
+
+            if let release = updater.availableRelease {
+                Button {
+                    open(.settings)
+                } label: {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(PanelPalette.cpuAccent)
+                            .frame(width: 5, height: 5)
+                        Text(verbatim: "v\(release.version)")
+                            .font(.system(size: 9.5, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(PanelPalette.cpuAccent)
+                    }
+                    .padding(.horizontal, 7)
+                    .frame(height: 20)
+                    .background(PanelPalette.cpuAccent.opacity(0.14), in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(PanelPalette.cpuAccent.opacity(0.45), lineWidth: 0.8)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(Text(verbatim: "Update available: v\(release.version)"))
+            }
 
             PanelToolbarIconButton(
                 systemName: "gearshape",
