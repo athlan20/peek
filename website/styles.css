@@ -61,6 +61,7 @@ html {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
 body {
@@ -69,7 +70,7 @@ body {
   background: var(--bg-canvas);
   color: var(--text-primary);
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
 }
 
@@ -452,8 +453,10 @@ button {
 
 .screenshot-trigger {
   all: unset;
+  box-sizing: border-box;
   display: block;
   width: 100%;
+  max-width: 100%;
   cursor: zoom-in;
   position: relative;
   z-index: 1;
@@ -871,6 +874,7 @@ button {
   border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .install-card-head {
@@ -933,6 +937,10 @@ button {
   transform: translateY(-1px);
 }
 
+.dl-row > div {
+  min-width: 0;
+}
+
 .dl-row strong {
   display: block;
   font-size: 0.95rem;
@@ -943,6 +951,8 @@ button {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   color: var(--text-muted);
+  display: block;
+  overflow-wrap: anywhere;
 }
 
 .dl-pill {
@@ -990,6 +1000,8 @@ button {
   background: #0b0f17;
   border: 1px solid var(--border-subtle);
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .code-box-head {
@@ -1109,6 +1121,7 @@ button {
 
 .wechat-qr-trigger {
   all: unset;
+  box-sizing: border-box;
   display: block;
   padding: 8px;
   border-radius: 16px;
@@ -1268,7 +1281,7 @@ button {
 /* Responsive */
 @media (max-width: 980px) {
   .hero-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 44px;
   }
 
@@ -1277,6 +1290,7 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 0;
   }
 
   .hero-cta,
@@ -1299,27 +1313,52 @@ button {
   }
 
   .install-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 720px) {
+  .container {
+    padding: 0 18px;
+  }
+
+  .nav-inner {
+    gap: 10px;
+  }
+
   .nav-links {
     display: none;
   }
 
+  .version-pill {
+    display: none;
+  }
+
   .hero {
-    padding: 48px 0 64px;
+    padding: 44px 0 60px;
+  }
+
+  .eyebrow {
+    font-size: 0.74rem;
+    padding: 5px 11px;
+  }
+
+  .hero-cta {
+    width: 100%;
+  }
+
+  .hero-cta .btn-lg {
+    width: 100%;
   }
 
   .section {
-    padding: 64px 0;
+    padding: 60px 0;
   }
 
   .bento-grid,
   .feature-trio,
   .principles-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .trust-strip {
@@ -1331,11 +1370,23 @@ button {
     flex-direction: column;
   }
 
+  .install-card {
+    padding: 22px 18px;
+  }
+
+  .dl-row {
+    padding: 13px 14px;
+  }
+
   .sponsor-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     text-align: center;
-    padding: 26px 22px;
+    padding: 24px 18px;
     gap: 24px;
+  }
+
+  .sponsor-copy {
+    min-width: 0;
   }
 
   .sponsor-desc {
