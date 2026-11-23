@@ -82,11 +82,14 @@ jobs:
           fi
 
       - name: Update Homebrew Tap Cask
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -euo pipefail
+          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
+            echo "HOMEBREW_TAP_TOKEN not configured; skipping Homebrew Tap update."
+            exit 0
+          fi
           VERSION="${{ steps.meta.outputs.version }}"
           ARM_SHA="$(awk -v f="Peek-${VERSION}-arm64.dmg" '$2 == f { print $1 }' dist/SHA256SUMS.txt)"
           INTEL_SHA="$(awk -v f="Peek-${VERSION}-x86_64.dmg" '$2 == f { print $1 }' dist/SHA256SUMS.txt)"
