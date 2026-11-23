@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Settings 独立窗口：沿用暗色 Bento 视觉风格，保留核心设置项（语言、刷新间隔、开机启动、完全磁盘访问、在线更新）。
+/// Settings 独立窗口：沿用 Bento 视觉风格，保留核心设置项（外观、语言、刷新间隔、开机启动、完全磁盘访问、在线更新）。
 struct SettingsView: View {
     @State private var model = SettingsModel()
     private var updater: UpdateManager = .shared
     private var languageManager: LanguageManager = .shared
+    private var appearanceManager: AppearanceManager = .shared
 
     var body: some View {
         ScrollView {
@@ -15,17 +16,16 @@ struct SettingsView: View {
             }
             .padding(14)
         }
-        .frame(minWidth: 460, minHeight: 390)
+        .frame(minWidth: 460, minHeight: 430)
         .background(PanelPalette.panelBackground)
         .toolbarBackground(PanelPalette.panelBackground, for: .windowToolbar)
-        .preferredColorScheme(.dark)
         .onAppear { model.reloadFullDiskAccess() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.reloadFullDiskAccess()
         }
     }
 
-    // MARK: - 通用设置（语言 + 刷新间隔 + 开机启动）
+    // MARK: - 通用设置（外观 + 语言 + 刷新间隔 + 开机启动）
 
     private var generalCard: some View {
         BentoCard(borderColor: PanelPalette.networkAccent, topGlow: PanelPalette.networkGlow) {
@@ -34,6 +34,57 @@ struct SettingsView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.4)
                     .foregroundStyle(PanelPalette.textSecondary)
+
+                // 外观模式
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Appearance")
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(PanelPalette.textPrimary)
+                        Text("Follow system or choose a theme")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(PanelPalette.textMuted)
+                    }
+                    Spacer()
+                    HStack(spacing: 3) {
+                        ForEach(AppAppearance.allCases) { option in
+                            let active = appearanceManager.appearance == option
+                            Button {
+                                withAnimation(.easeOut(duration: 0.15)) {
+                                    appearanceManager.setAppearance(option)
+                                }
+                            } label: {
+                                Text(option.titleKey)
+                                    .font(.system(size: 11, weight: active ? .semibold : .medium))
+                                    .foregroundStyle(active ? PanelPalette.textPrimary : PanelPalette.textSecondary)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 22)
+                                    .background {
+                                        if active {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .fill(PanelPalette.networkAccent.opacity(0.18))
+                                                .overlay {
+                                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                        .strokeBorder(PanelPalette.networkAccent.opacity(0.48), lineWidth: 1)
+                                                }
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(3)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(PanelPalette.segmentedTrack)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(PanelPalette.pillBorder, lineWidth: 1)
+                    }
+                }
+
+                Rectangle().fill(PanelPalette.divider).frame(height: 1)
 
                 // 界面语言
                 HStack {
@@ -76,11 +127,11 @@ struct SettingsView: View {
                     .padding(3)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.black.opacity(0.22))
+                            .fill(PanelPalette.segmentedTrack)
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                            .strokeBorder(PanelPalette.pillBorder, lineWidth: 1)
                     }
                 }
 
@@ -127,11 +178,11 @@ struct SettingsView: View {
                     .padding(3)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.black.opacity(0.22))
+                            .fill(PanelPalette.segmentedTrack)
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                            .strokeBorder(PanelPalette.pillBorder, lineWidth: 1)
                     }
                 }
 
@@ -392,12 +443,12 @@ private struct SettingsPillButton: View {
             .frame(height: 28)
             .background {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.10) : Color.white.opacity(0.04))
+                    .fill(isHovered ? PanelPalette.pillHover : PanelPalette.pillBackground)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(
-                        isHovered ? Color.white.opacity(0.24) : Color.white.opacity(0.12),
+                        isHovered ? PanelPalette.controlBorderHover : PanelPalette.controlBorder,
                         lineWidth: 1)
             }
         }

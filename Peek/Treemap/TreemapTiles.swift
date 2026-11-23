@@ -25,9 +25,8 @@ struct TreemapTile: Identifiable, Equatable, @unchecked Sendable {
 
 /// 条目 → 方块。纯计算,不依赖视图,方便单元测试。
 enum TreemapTiles {
-    /// "其他"方块的底色:压暗的中灰蓝,和磁盘分析原来 `.other` 类一样。
-    static let otherColor = Color(
-        .sRGB, red: Double(0x3A) / 255, green: Double(0x3F) / 255, blue: Double(0x4A) / 255)
+    /// "其他"方块的底色:深色下压暗中灰蓝，浅色下冷灰蓝柔彩。
+    static let otherColor = PanelPalette.treemapOtherFill
 
     /// 大小为 0 的条目**不画**(调用方要在别处列出就自己列),其余按大小从大到小排,
     /// 前 `TreemapLayout.individualCount` 个单独成块,剩下的合并成"其他"。

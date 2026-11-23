@@ -7,6 +7,7 @@ import Foundation
 /// - `clean.projectRoots`：项目构建产物的扫描目录（绝对路径），留空用默认目录（R7）。
 /// - `refreshIntervalSeconds`：面板打开时的采样间隔，`SystemMonitor` 读它。
 /// - `app.language`：界面语言（`system` / `en` / `zh-Hans`），默认跟随系统。
+/// - `app.appearance`：界面外观（`system` / `light` / `dark`），默认跟随系统。
 ///
 /// `UserDefaults` 可注入，测试里用临时 suite。
 struct SettingsStore {
@@ -14,6 +15,7 @@ struct SettingsStore {
     static let projectRootsKey = "clean.projectRoots"
     static let refreshIntervalKey = "refreshIntervalSeconds"
     static let appLanguageKey = "app.language"
+    static let appAppearanceKey = "app.appearance"
 
     /// 面板打开时可选的采样间隔（秒）。第一项是默认值。
     static let refreshIntervalOptions = [1, 2, 5]
@@ -107,6 +109,23 @@ struct SettingsStore {
         get { Self.appLanguage(from: defaults) }
         nonmutating set {
             defaults.set(newValue.rawValue, forKey: Self.appLanguageKey)
+        }
+    }
+
+    // MARK: - 界面外观
+
+    /// 没有或不是有效外观值时回退到跟随系统。
+    nonisolated static func appAppearance(from defaults: UserDefaults) -> AppAppearance {
+        guard let raw = defaults.string(forKey: appAppearanceKey),
+              let appearance = AppAppearance(rawValue: raw)
+        else { return .system }
+        return appearance
+    }
+
+    var appAppearance: AppAppearance {
+        get { Self.appAppearance(from: defaults) }
+        nonmutating set {
+            defaults.set(newValue.rawValue, forKey: Self.appAppearanceKey)
         }
     }
 }

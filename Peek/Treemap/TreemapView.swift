@@ -102,6 +102,8 @@ struct TreemapView<MenuContent: View>: View {
 // MARK: - 一个方块
 
 private struct TreemapTileView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let tile: TreemapTile
     let isSelected: Bool
     var bentoStyle = false
@@ -109,6 +111,7 @@ private struct TreemapTileView: View {
     @State private var isHovering = false
 
     var body: some View {
+        let isLight = colorScheme == .light
         GeometryReader { proxy in
             let width = proxy.size.width
             let height = proxy.size.height
@@ -120,15 +123,20 @@ private struct TreemapTileView: View {
 
             ZStack {
                 if bentoStyle {
-                    shape.fill(isOtherTile ? PanelPalette.inactivePixel : tile.color)
+                    shape.fill(isOtherTile ? PanelPalette.treemapOtherFill : tile.color)
                     // 顶部微弱玻璃高光渐变，呼应主面板 Bento 卡片质感。
                     shape.fill(
                         LinearGradient(
-                            colors: [
-                                Color.white.opacity(isHovering ? 0.18 : 0.11),
-                                Color.clear,
-                                Color.black.opacity(0.24),
-                            ],
+                            colors: isLight
+                                ? [
+                                    Color.white.opacity(isHovering ? 0.45 : 0.30),
+                                    Color.clear,
+                                ]
+                                : [
+                                    Color.white.opacity(isHovering ? 0.18 : 0.11),
+                                    Color.clear,
+                                    Color.black.opacity(0.24),
+                                ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -137,10 +145,14 @@ private struct TreemapTileView: View {
                     Rectangle().fill(tile.color)
                 }
                 if tile.dimLevel != .none {
-                    shape.fill(Color.black.opacity(tile.dimLevel.overlayOpacity))
+                    shape.fill(
+                        isLight
+                            ? PanelPalette.panelBackground.opacity(tile.dimLevel.overlayOpacity * 0.85)
+                            : Color.black.opacity(tile.dimLevel.overlayOpacity)
+                    )
                 }
                 if isHovering {
-                    shape.fill(Color.white.opacity(0.08))
+                    shape.fill(isLight ? Color.black.opacity(0.035) : Color.white.opacity(0.08))
                 }
                 if let icon = tile.icon {
                     tileContent(layout: layout, icon: icon, width: width, height: height)
@@ -152,21 +164,32 @@ private struct TreemapTileView: View {
                 if bentoStyle {
                     shape.strokeBorder(
                         isSelected
-                            ? Color.white.opacity(0.95)
-                            : Color.white.opacity(isHovering ? 0.42 : (isOtherTile ? 0.10 : 0.16)),
-                        lineWidth: isSelected ? 1.8 : 0.85
+                            ? PanelPalette.treemapSelectionBorder
+                            : (isLight
+                                ? Color(nsColor: PanelPalette.nsColor(hex: 0x0F172A, alpha: isHovering ? 0.28 : 0.12))
+                                : Color.white.opacity(isHovering ? 0.42 : (isOtherTile ? 0.10 : 0.16))),
+                        lineWidth: isSelected ? 2.0 : 0.85
                     )
                 } else if isSelected {
-                    Rectangle().strokeBorder(Color.white, lineWidth: 2)
+                    Rectangle().strokeBorder(PanelPalette.treemapSelectionBorder, lineWidth: 2)
                 }
             }
             .clipShape(shape)
-            .shadow(color: bentoStyle && isSelected ? Color.white.opacity(0.28) : .clear, radius: 5)
+            .shadow(
+                color: bentoStyle && isSelected
+                    ? PanelPalette.treemapSelectionBorder.opacity(isLight ? 0.22 : 0.28)
+                    : .clear,
+                radius: 5
+            )
             .overlay(alignment: .topTrailing) {
                 if let badge = tile.badge {
                     Image(systemName: badge.symbol)
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(badge.isWarning ? Color.orange : Color.white.opacity(0.9))
+                        .foregroundStyle(
+                            badge.isWarning
+                                ? PanelPalette.thermalAccent
+                                : (isLight ? PanelPalette.networkAccent : Color.white.opacity(0.9))
+                        )
                         .padding(3)
                 }
             }
@@ -211,6 +234,7 @@ private struct TreemapTileView: View {
     }
 
     private func labels(width: CGFloat, height: CGFloat) -> some View {
+        let isLight = colorScheme == .light
         let large = width >= 180 && height >= 110
         let medium = width >= 90 && height >= 56
         let titleSize: CGFloat = large ? 17 : (medium ? 13 : 11)
@@ -219,21 +243,21 @@ private struct TreemapTileView: View {
         return VStack(spacing: 2) {
             Text(verbatim: tile.title)
                 .font(.system(size: titleSize, weight: bentoStyle ? .semibold : .medium))
-                .foregroundStyle(.white.opacity(0.96))
-                .shadow(color: bentoStyle ? Color.black.opacity(0.35) : .clear, radius: 2, y: 1)
+                .foregroundStyle(PanelPalette.treemapTextPrimary)
+                .shadow(color: bentoStyle && !isLight ? Color.black.opacity(0.35) : .clear, radius: 2, y: 1)
                 .lineLimit(1)
                 .truncationMode(.middle)
             if height >= 42 {
                 Text(verbatim: TreemapText.size(tile.size))
                     .font(.system(size: detailSize, weight: bentoStyle ? .medium : .regular).monospacedDigit())
-                    .foregroundStyle(.white.opacity(bentoStyle ? 0.82 : 0.75))
-                    .shadow(color: bentoStyle ? Color.black.opacity(0.30) : .clear, radius: 1.5, y: 1)
+                    .foregroundStyle(PanelPalette.treemapTextSecondary)
+                    .shadow(color: bentoStyle && !isLight ? Color.black.opacity(0.30) : .clear, radius: 1.5, y: 1)
                     .lineLimit(1)
             }
             if let subtitle = tile.subtitle, height >= 60 {
                 Text(verbatim: subtitle)
                     .font(.system(size: detailSize - 1))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(PanelPalette.treemapTextSecondary.opacity(0.85))
                     .lineLimit(1)
                     .truncationMode(.tail)
             }

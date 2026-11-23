@@ -105,4 +105,27 @@ final class SettingsStoreTests: XCTestCase {
         defaults.set("fr-FR", forKey: SettingsStore.appLanguageKey)
         XCTAssertEqual(store.appLanguage, .system)
     }
+
+    // MARK: - 界面外观
+
+    func testAppAppearanceDefaultsToSystem() {
+        XCTAssertEqual(store.appAppearance, .system)
+        XCTAssertEqual(SettingsStore.appAppearance(from: defaults), .system)
+        XCTAssertNil(AppAppearance.system.colorScheme)
+        XCTAssertEqual(AppAppearance.light.colorScheme, .light)
+        XCTAssertEqual(AppAppearance.dark.colorScheme, .dark)
+    }
+
+    func testAppAppearancePersistsValidValues() {
+        for appearance in AppAppearance.allCases {
+            store.appAppearance = appearance
+            XCTAssertEqual(defaults.string(forKey: SettingsStore.appAppearanceKey), appearance.rawValue)
+            XCTAssertEqual(store.appAppearance, appearance)
+        }
+    }
+
+    func testAppAppearanceFallsBackToSystemForInvalidStoredValue() {
+        defaults.set("sepia", forKey: SettingsStore.appAppearanceKey)
+        XCTAssertEqual(store.appAppearance, .system)
+    }
 }

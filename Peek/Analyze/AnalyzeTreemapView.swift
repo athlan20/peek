@@ -103,22 +103,34 @@ struct AnalyzeItemMenu: View {
 
 // MARK: - 颜色
 
-/// 方块颜色:都是压暗过的中等色,深浅色模式下都配白字。Agent 的品牌色和深灰底按 7:3 混合,不那么刺眼。
+/// 方块颜色:深色模式下为压暗中等色配白字；浅色模式下为柔彩浅底配深字（方案 A）。
 enum AnalyzeTreemapColors {
-    private static let base: UInt32 = 0x161E2B
+    private static let darkBase: UInt32 = 0x161E2B
+    private static let lightBase: UInt32 = 0xFFFFFF
+
+    private static let agentColor = PanelPalette.dynamicHex(dark: 0x5E4B8B, light: 0xE3D9F7)
+    private static let appsColor = PanelPalette.dynamicHex(dark: 0x28558A, light: 0xD2E5FA)
+    private static let developerColor = PanelPalette.dynamicHex(dark: 0x1E6B52, light: 0xC9F0DF)
+    private static let mediaColor = PanelPalette.dynamicHex(dark: 0x883F5E, light: 0xF5D2E1)
+    private static let documentsColor = PanelPalette.dynamicHex(dark: 0x8A5D24, light: 0xF6E1BE)
+    private static let systemColor = PanelPalette.dynamicHex(dark: 0x364458, light: 0xDDE5F0)
+    private static let otherColor = PanelPalette.dynamicHex(dark: 0x263142, light: 0xE6ECF4)
 
     static func color(for category: AnalyzeCategory, agent: AnalyzeAgent?) -> Color {
         if let brand = agent?.brandColor {
-            return rgb(mix(brand, base, 0.65))
+            return PanelPalette.dynamicHex(
+                dark: mix(brand, darkBase, 0.65),
+                light: mix(brand, lightBase, 0.22)
+            )
         }
         switch category {
-        case .agent: return rgb(0x5E4B8B)
-        case .apps: return rgb(0x28558A)
-        case .developer: return rgb(0x1E6B52)
-        case .media: return rgb(0x883F5E)
-        case .documents: return rgb(0x8A5D24)
-        case .system: return rgb(0x364458)
-        case .other: return rgb(0x263142)
+        case .agent:     return agentColor
+        case .apps:      return appsColor
+        case .developer: return developerColor
+        case .media:     return mediaColor
+        case .documents: return documentsColor
+        case .system:    return systemColor
+        case .other:     return otherColor
         }
     }
 
@@ -131,13 +143,5 @@ enum AnalyzeTreemapColors {
             result |= UInt32(max(0, min(255, mixed.rounded()))) << shift
         }
         return result
-    }
-
-    private static func rgb(_ value: UInt32) -> Color {
-        Color(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255)
     }
 }

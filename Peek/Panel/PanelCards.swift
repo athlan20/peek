@@ -194,35 +194,114 @@ private enum ProcessMondrianMode: Equatable {
         switch self {
         case .cpu:
             if process.cpu >= 1.20 {
-                return Color(red: 0.62, green: 0.22, blue: 0.22)
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.62, green: 0.22, blue: 0.22, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFECACA)
+                )
             }
             if process.cpu >= 0.70 {
-                return Color(red: 0.58, green: 0.44, blue: 0.14)
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.58, green: 0.44, blue: 0.14, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFDE68A)
+                )
             }
             switch rank {
-            case 0: return Color(red: 0.12, green: 0.48, blue: 0.36)
-            case 1: return Color(red: 0.11, green: 0.40, blue: 0.43)
-            case 2: return Color(red: 0.13, green: 0.33, blue: 0.41)
-            case 3: return Color(red: 0.13, green: 0.27, blue: 0.36)
-            default: return Color(red: 0.14, green: 0.22, blue: 0.31)
+            case 0:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.12, green: 0.48, blue: 0.36, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xC2F5DF)
+                )
+            case 1:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.11, green: 0.40, blue: 0.43, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xBCEFE6)
+                )
+            case 2:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.13, green: 0.33, blue: 0.41, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xCEE9FC)
+                )
+            case 3:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.13, green: 0.27, blue: 0.36, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xDCE7F5)
+                )
+            default:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.14, green: 0.22, blue: 0.31, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xE6ECF4)
+                )
             }
         case .memory(let totalBytes):
             let share = totalBytes > 0 ? Double(process.memoryBytes) / Double(totalBytes) : 0
             if share >= 0.25 {
-                return Color(red: 0.68, green: 0.20, blue: 0.22)
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.68, green: 0.20, blue: 0.22, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFECACA)
+                )
             }
             switch rank {
-            case 0: return Color(red: 0.56, green: 0.21, blue: 0.24) // 深珊瑚红
-            case 1: return Color(red: 0.54, green: 0.28, blue: 0.20) // 暖赤陶
-            case 2: return Color(red: 0.49, green: 0.33, blue: 0.19) // 焦糖琥珀
-            case 3: return Color(red: 0.40, green: 0.24, blue: 0.24) // 暗红褐
-            default: return Color(red: 0.30, green: 0.20, blue: 0.25) // 梅灰暗底
+            case 0:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.56, green: 0.21, blue: 0.24, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFFD5DA)
+                )
+            case 1:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.54, green: 0.28, blue: 0.20, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFDE0C2)
+                )
+            case 2:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.49, green: 0.33, blue: 0.19, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFDE9B2)
+                )
+            case 3:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.40, green: 0.24, blue: 0.24, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xFBD6E6)
+                )
+            default:
+                return PanelPalette.dynamic(
+                    dark: NSColor(srgbRed: 0.30, green: 0.20, blue: 0.25, alpha: 1),
+                    light: PanelPalette.nsColor(hex: 0xECE4F2)
+                )
             }
         }
     }
 
+    var tilePrimaryText: Color {
+        switch self {
+        case .cpu:
+            PanelPalette.dynamic(
+                dark: NSColor.white.withAlphaComponent(0.95),
+                light: PanelPalette.nsColor(hex: 0x064E3B)
+            )
+        case .memory:
+            PanelPalette.dynamic(
+                dark: NSColor.white.withAlphaComponent(0.95),
+                light: PanelPalette.nsColor(hex: 0x7F1D1D)
+            )
+        }
+    }
+
+    var tileSecondaryText: Color {
+        switch self {
+        case .cpu:
+            PanelPalette.dynamic(
+                dark: NSColor.white.withAlphaComponent(0.78),
+                light: PanelPalette.nsColor(hex: 0x064E3B, alpha: 0.72)
+            )
+        case .memory:
+            PanelPalette.dynamic(
+                dark: NSColor.white.withAlphaComponent(0.78),
+                light: PanelPalette.nsColor(hex: 0x7F1D1D, alpha: 0.72)
+            )
+        }
+    }
+
     func borderTint(for process: ProcessUsage?, rank: Int, isHovered: Bool) -> Color {
-        if isHovered { return Color.white }
+        if isHovered { return PanelPalette.treemapSelectionBorder }
         guard let process else { return PanelPalette.inactivePixel }
         switch self {
         case .cpu:
@@ -392,6 +471,8 @@ private struct ProcessMondrianGrid: View {
 }
 
 private struct ProcessMondrianTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let process: ProcessUsage?
     let mode: ProcessMondrianMode
     let rank: Int
@@ -400,6 +481,7 @@ private struct ProcessMondrianTile: View {
     let isHovered: Bool
 
     var body: some View {
+        let isLight = colorScheme == .light
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         let fillColor = mode.fillColor(for: process, rank: rank)
         let borderTint = mode.borderTint(for: process, rank: rank, isHovered: isHovered)
@@ -409,11 +491,16 @@ private struct ProcessMondrianTile: View {
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [
-                            Color.white.opacity(isHovered ? 0.22 : 0.11),
-                            Color.clear,
-                            Color.black.opacity(0.18),
-                        ],
+                        colors: isLight
+                            ? [
+                                Color.white.opacity(isHovered ? 0.55 : 0.36),
+                                Color.clear,
+                            ]
+                            : [
+                                Color.white.opacity(isHovered ? 0.22 : 0.11),
+                                Color.clear,
+                                Color.black.opacity(0.18),
+                            ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -428,7 +515,7 @@ private struct ProcessMondrianTile: View {
             }
             .overlay {
                 shape.strokeBorder(
-                    borderTint.opacity(isHovered ? 0.85 : (rank == 0 ? 0.52 : 0.28)),
+                    borderTint.opacity(isHovered ? 0.85 : (isLight ? 0.26 : (rank == 0 ? 0.52 : 0.28))),
                     lineWidth: isHovered ? 1.2 : 0.75
                 )
             }
@@ -451,31 +538,31 @@ private struct ProcessMondrianTile: View {
             VStack(alignment: .leading, spacing: 0.5) {
                 Text(verbatim: process.name)
                     .font(.system(size: width >= 66 ? 9.5 : 8.2, weight: .semibold))
-                    .foregroundStyle(PanelPalette.textPrimary)
+                    .foregroundStyle(mode.tilePrimaryText)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Text(verbatim: value)
                     .font(.system(size: 8, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Color.white.opacity(0.78))
+                    .foregroundStyle(mode.tileSecondaryText)
                     .lineLimit(1)
             }
         } else if width >= 54 && height >= 16 {
             HStack(spacing: 3) {
                 Text(verbatim: process.name)
                     .font(.system(size: 8.2, weight: .semibold))
-                    .foregroundStyle(PanelPalette.textPrimary)
+                    .foregroundStyle(mode.tilePrimaryText)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 2)
                 Text(verbatim: value)
                     .font(.system(size: 7.8, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Color.white.opacity(0.78))
+                    .foregroundStyle(mode.tileSecondaryText)
                     .lineLimit(1)
             }
         } else if width >= 22 && height >= 13 {
             Text(verbatim: value)
                 .font(.system(size: 7.5, weight: .medium).monospacedDigit())
-                .foregroundStyle(PanelPalette.textPrimary.opacity(0.9))
+                .foregroundStyle(mode.tilePrimaryText.opacity(0.9))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -919,7 +1006,7 @@ private struct StorageSectorGrid: View, Equatable {
         if let hovered {
             if category == hovered {
                 return category == .free
-                    ? Color.white.opacity(0.45)
+                    ? PanelPalette.segFree
                     : category.color
             }
             return category == .free
@@ -974,11 +1061,11 @@ private struct PortRowPill: View {
             .padding(.horizontal, 6)
             .frame(height: 18.5)
             .background {
-                shape.fill(isHovered ? color.opacity(0.16) : Color.white.opacity(0.04))
+                shape.fill(isHovered ? color.opacity(0.16) : PanelPalette.pillBackground)
             }
             .overlay {
                 shape.strokeBorder(
-                    isHovered ? color.opacity(0.60) : Color.white.opacity(0.07),
+                    isHovered ? color.opacity(0.60) : PanelPalette.pillBorder,
                     lineWidth: 0.8
                 )
             }

@@ -10,6 +10,7 @@ struct AnalyzeView: View {
         case list
     }
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var model = AnalyzeModel()
     @AppStorage("analyze.layout") private var layout: Layout = .treemap
 
@@ -40,7 +41,6 @@ struct AnalyzeView: View {
         .frame(minWidth: 660, minHeight: 480)
         .background(PanelPalette.panelBackground)
         .toolbarBackground(PanelPalette.panelBackground, for: .windowToolbar)
-        .preferredColorScheme(.dark)
         .onAppear { model.start() }
         // 关窗口就停掉后台扫描。
         .onDisappear { model.stop() }
@@ -107,7 +107,7 @@ struct AnalyzeView: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
             }
 
             if model.tab == .items {
@@ -136,7 +136,7 @@ struct AnalyzeView: View {
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                            .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
                     }
                 }
                 .menuStyle(.borderlessButton)
@@ -203,7 +203,7 @@ struct AnalyzeView: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
             }
 
             statusPill
@@ -223,7 +223,7 @@ struct AnalyzeView: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
                 }
             }
         }
@@ -243,7 +243,7 @@ struct AnalyzeView: View {
                 .background {
                     if active {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.white.opacity(0.12))
+                            .fill(PanelPalette.segmentedActive)
                     }
                 }
         }
@@ -286,7 +286,7 @@ struct AnalyzeView: View {
         }
         .overlay {
             Capsule()
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                .strokeBorder(PanelPalette.pillBorder, lineWidth: 1)
         }
     }
 
@@ -329,11 +329,12 @@ struct AnalyzeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
+            let isLight = colorScheme == .light
             shape
                 .fill(PanelPalette.cardBackground)
                 .overlay {
                     LinearGradient(
-                        colors: [tabGlow.opacity(0.28), Color.clear],
+                        colors: [tabGlow.opacity(isLight ? 0.08 : 0.28), Color.clear],
                         startPoint: .topLeading,
                         endPoint: .center
                     )
@@ -343,7 +344,7 @@ struct AnalyzeView: View {
                     shape
                         .strokeBorder(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.14), Color.clear],
+                                colors: [Color.white.opacity(isLight ? 0.85 : 0.14), Color.clear],
                                 startPoint: .top,
                                 endPoint: .center
                             ),
@@ -356,6 +357,7 @@ struct AnalyzeView: View {
                 .strokeBorder(tabAccent.opacity(0.35), lineWidth: 1)
         }
         .clipShape(shape)
+        .shadow(color: PanelPalette.cardShadow, radius: colorScheme == .light ? 3 : 0, x: 0, y: colorScheme == .light ? 1 : 0)
     }
 
     private var treemapLegendBar: some View {
@@ -369,7 +371,7 @@ struct AnalyzeView: View {
                 legendItem(AnalyzeTreemapColors.color(for: .media, agent: nil), "Media")
                 legendItem(AnalyzeTreemapColors.color(for: .documents, agent: nil), "Docs")
                 legendItem(AnalyzeTreemapColors.color(for: .system, agent: nil), "System")
-                legendItem(PanelPalette.inactivePixel, "Other")
+                legendItem(PanelPalette.treemapOtherFill, "Other")
             }
             Spacer(minLength: 0)
             Text("\(model.items.count) items")
@@ -378,7 +380,7 @@ struct AnalyzeView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(Color.black.opacity(0.16))
+        .background(PanelPalette.legendBackground)
     }
 
     private func legendItem(_ color: Color, _ title: String) -> some View {
@@ -387,7 +389,7 @@ struct AnalyzeView: View {
                 .fill(color)
                 .frame(width: 6, height: 6)
                 .overlay {
-                    Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.5)
+                    Circle().strokeBorder(PanelPalette.treemapTileBorder, lineWidth: 0.5)
                 }
             Text(verbatim: title)
                 .font(.system(size: 10, weight: .medium))
@@ -594,10 +596,10 @@ private struct AnalyzeBreadcrumbButton: View {
                 .background {
                     if isCurrent {
                         RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(Color.white.opacity(0.09))
+                            .fill(PanelPalette.segmentedActive)
                     } else if isHovered {
                         RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(PanelPalette.pillBackground)
                     }
                 }
         }
@@ -674,16 +676,16 @@ private struct AnalyzeBentoRow: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
                     isSelected
-                        ? PanelPalette.networkAccent.opacity(0.18)
-                        : (isHovered ? Color.white.opacity(0.06) : Color.white.opacity(0.02))
+                        ? PanelPalette.networkAccent.opacity(0.16)
+                        : (isHovered ? PanelPalette.rowHover : PanelPalette.rowBackground)
                 )
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(
                     isSelected
-                        ? PanelPalette.networkAccent.opacity(0.60)
-                        : (isHovered ? Color.white.opacity(0.12) : Color.clear),
+                        ? PanelPalette.networkAccent.opacity(0.55)
+                        : (isHovered ? PanelPalette.controlBorder : Color.clear),
                     lineWidth: 1
                 )
         }
@@ -714,12 +716,12 @@ private struct AnalyzeIconButton: View {
                 .frame(width: 28, height: 28)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isHovered && !isDisabled ? Color.white.opacity(0.10) : PanelPalette.cardBackground)
+                        .fill(isHovered && !isDisabled ? PanelPalette.controlHover : PanelPalette.controlBackground)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(
-                            isHovered && !isDisabled ? Color.white.opacity(0.22) : Color.white.opacity(0.10),
+                            isHovered && !isDisabled ? PanelPalette.controlBorderHover : PanelPalette.controlBorder,
                             lineWidth: 1)
                 }
         }
@@ -773,13 +775,13 @@ private struct AnalyzeFooterButton: View {
 
     private var backgroundColor: Color {
         if isDisabled { return PanelPalette.cardBackground.opacity(0.6) }
-        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.22 : 0.12) }
-        return isHovered ? Color.white.opacity(0.10) : PanelPalette.cardBackground
+        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.18 : 0.10) }
+        return isHovered ? PanelPalette.controlHover : PanelPalette.controlBackground
     }
 
     private var borderColor: Color {
-        if isDisabled { return Color.white.opacity(0.06) }
-        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.65 : 0.38) }
-        return isHovered ? tint.opacity(0.50) : Color.white.opacity(0.12)
+        if isDisabled { return PanelPalette.pillBorder.opacity(0.7) }
+        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.60 : 0.35) }
+        return isHovered ? tint.opacity(0.50) : PanelPalette.controlBorder
     }
 }

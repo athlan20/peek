@@ -197,11 +197,17 @@ enum UninstallTreemapColors {
         color(band(lastUsed: lastUsed, now: now))
     }
 
+    private static let bandColors: [UninstallUsageBand: Color] = Dictionary(
+        uniqueKeysWithValues: UninstallUsageBand.allCases.map { band in
+            (band, PanelPalette.dynamicHex(dark: hex(band), light: lightHex(band)))
+        }
+    )
+
     static func color(_ band: UninstallUsageBand) -> Color {
-        rgb(hex(band))
+        bandColors[band] ?? PanelPalette.dynamicHex(dark: hex(band), light: lightHex(band))
     }
 
-    /// 档位对应的色值,单元测试也看这个。
+    /// 档位对应的深色色值,单元测试也看这个。
     static func hex(_ band: UninstallUsageBand) -> UInt32 {
         switch band {
         case .week: 0x3E5C8A    // 蓝灰
@@ -213,12 +219,16 @@ enum UninstallTreemapColors {
         }
     }
 
-    private static func rgb(_ value: UInt32) -> Color {
-        Color(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255)
+    /// 档位对应的浅色柔彩色值（方案 A：冷蓝→暖陶）。
+    static func lightHex(_ band: UninstallUsageBand) -> UInt32 {
+        switch band {
+        case .week: 0xD3E5FA    // 柔雾蓝
+        case .month: 0xCBEBDE   // 柔青绿
+        case .quarter: 0xE8EACC // 柔橄榄
+        case .year: 0xF5DFC0    // 柔沙杏
+        case .older: 0xF3D2C4   // 柔暖陶
+        case .unknown: 0xE2E7F0 // 柔冷灰
+        }
     }
 }
 

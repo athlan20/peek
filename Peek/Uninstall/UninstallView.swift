@@ -9,6 +9,7 @@ struct UninstallView: View {
         case list
     }
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var model = UninstallModel()
     @AppStorage("uninstall.layout") private var layout: Layout = .treemap
     /// 方块视图里选中的 App。切换视图、进出预览页都保留。
@@ -27,7 +28,6 @@ struct UninstallView: View {
         .frame(minWidth: 660, minHeight: 480)
         .background(PanelPalette.panelBackground)
         .toolbarBackground(PanelPalette.panelBackground, for: .windowToolbar)
-        .preferredColorScheme(.dark)
         .onAppear { model.load() }
         .alert("Uninstall \(model.current?.name ?? "")?", isPresented: $model.confirming) {
             Button("Uninstall", role: .destructive) { model.confirmedUninstall() }
@@ -84,7 +84,7 @@ struct UninstallView: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
             }
 
             if layout == .list {
@@ -111,7 +111,7 @@ struct UninstallView: View {
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                            .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
                     }
                 }
                 .menuStyle(.borderlessButton)
@@ -147,7 +147,7 @@ struct UninstallView: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
             }
         }
     }
@@ -166,7 +166,7 @@ struct UninstallView: View {
                 .background {
                     if active {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.white.opacity(0.12))
+                            .fill(PanelPalette.segmentedActive)
                     }
                 }
         }
@@ -203,11 +203,12 @@ struct UninstallView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
+            let isLight = colorScheme == .light
             shape
                 .fill(PanelPalette.cardBackground)
                 .overlay {
                     LinearGradient(
-                        colors: [PanelPalette.memGlow.opacity(0.24), Color.clear],
+                        colors: [PanelPalette.memGlow.opacity(isLight ? 0.08 : 0.24), Color.clear],
                         startPoint: .topLeading,
                         endPoint: .center
                     )
@@ -217,7 +218,7 @@ struct UninstallView: View {
                     shape
                         .strokeBorder(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.14), Color.clear],
+                                colors: [Color.white.opacity(isLight ? 0.85 : 0.14), Color.clear],
                                 startPoint: .top,
                                 endPoint: .center
                             ),
@@ -230,6 +231,7 @@ struct UninstallView: View {
                 .strokeBorder(PanelPalette.memAccent.opacity(0.32), lineWidth: 1)
         }
         .clipShape(shape)
+        .shadow(color: PanelPalette.cardShadow, radius: colorScheme == .light ? 3 : 0, x: 0, y: colorScheme == .light ? 1 : 0)
     }
 
     private var bentoAppList: some View {
@@ -265,7 +267,7 @@ struct UninstallView: View {
                         .fill(UninstallTreemapColors.color(band))
                         .frame(width: 6, height: 6)
                         .overlay {
-                            Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.5)
+                            Circle().strokeBorder(PanelPalette.treemapTileBorder, lineWidth: 0.5)
                         }
                     Text(band.title)
                         .font(.system(size: 10, weight: .medium))
@@ -295,7 +297,7 @@ struct UninstallView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(Color.black.opacity(0.16))
+        .background(PanelPalette.legendBackground)
     }
 
     private var treemapFooter: some View {
@@ -407,7 +409,7 @@ struct UninstallView: View {
                                 .foregroundStyle(PanelPalette.textPrimary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Color.white.opacity(0.08), in: Capsule())
+                                .background(PanelPalette.pillBackground, in: Capsule())
                         }
                     }
                 }
@@ -456,7 +458,7 @@ struct UninstallView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(shape.fill(PanelPalette.cardBackground))
-                .overlay(shape.strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+                .overlay(shape.strokeBorder(PanelPalette.controlBorder, lineWidth: 1))
                 .clipShape(shape)
             }
 
@@ -532,11 +534,11 @@ struct UninstallView: View {
         .padding(.vertical, 7)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? Color.white.opacity(0.05) : Color.white.opacity(0.02))
+                .fill(isSelected ? PanelPalette.rowSelected : PanelPalette.rowBackground)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.white.opacity(isSelected ? 0.12 : 0.05), lineWidth: 1)
+                .strokeBorder(isSelected ? PanelPalette.controlBorderHover : PanelPalette.pillBorder, lineWidth: 1)
         }
     }
 
@@ -739,7 +741,7 @@ private struct UninstallBentoAppRow: View {
                 .fill(
                     isSelected
                         ? PanelPalette.memAccent.opacity(0.16)
-                        : (isHovered ? Color.white.opacity(0.06) : Color.white.opacity(0.02))
+                        : (isHovered ? PanelPalette.rowHover : PanelPalette.rowBackground)
                 )
         }
         .overlay {
@@ -747,7 +749,7 @@ private struct UninstallBentoAppRow: View {
                 .strokeBorder(
                     isSelected
                         ? PanelPalette.memAccent.opacity(0.55)
-                        : (isHovered ? Color.white.opacity(0.12) : Color.clear),
+                        : (isHovered ? PanelPalette.controlBorder : Color.clear),
                     lineWidth: 1
                 )
         }
@@ -776,12 +778,12 @@ private struct UninstallIconButton: View {
                 .frame(width: 28, height: 28)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isHovered ? Color.white.opacity(0.10) : PanelPalette.cardBackground)
+                        .fill(isHovered ? PanelPalette.controlHover : PanelPalette.controlBackground)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(
-                            isHovered ? Color.white.opacity(0.22) : Color.white.opacity(0.10),
+                            isHovered ? PanelPalette.controlBorderHover : PanelPalette.controlBorder,
                             lineWidth: 1)
                 }
         }
@@ -833,13 +835,13 @@ private struct UninstallActionButton: View {
 
     private var backgroundColor: Color {
         if isDisabled { return PanelPalette.cardBackground.opacity(0.6) }
-        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.22 : 0.12) }
-        return isHovered ? Color.white.opacity(0.10) : PanelPalette.cardBackground
+        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.18 : 0.10) }
+        return isHovered ? PanelPalette.controlHover : PanelPalette.controlBackground
     }
 
     private var borderColor: Color {
-        if isDisabled { return Color.white.opacity(0.06) }
-        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.65 : 0.38) }
-        return isHovered ? Color.white.opacity(0.24) : Color.white.opacity(0.12)
+        if isDisabled { return PanelPalette.pillBorder.opacity(0.7) }
+        if isDestructive { return PanelPalette.alertAccent.opacity(isHovered ? 0.60 : 0.35) }
+        return isHovered ? PanelPalette.controlBorderHover : PanelPalette.controlBorder
     }
 }

@@ -73,7 +73,6 @@ struct PanelView: View {
         .padding(.bottom, 10)
         .frame(width: 392)
         .background(PanelPalette.panelBackground)
-        .preferredColorScheme(.dark)
         .background {
             PanelVisibilityReader { visible in
                 monitor.setMode(visible ? .panelOpen : .background)
@@ -173,14 +172,15 @@ private struct PanelActionButton: View {
             .frame(height: 28)
             .background {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.10) : PanelPalette.cardBackground)
+                    .fill(isHovered ? PanelPalette.controlHover : PanelPalette.controlBackground)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(
-                        isHovered ? Color.white.opacity(0.22) : Color.white.opacity(0.10),
+                        isHovered ? PanelPalette.controlBorderHover : PanelPalette.controlBorder,
                         lineWidth: 1)
             }
+            .shadow(color: PanelPalette.cardShadow, radius: 2, x: 0, y: 1)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -205,7 +205,7 @@ private struct PanelToolbarIconButton: View {
                 .background {
                     if isHovered {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.white.opacity(0.08))
+                            .fill(PanelPalette.pillHover)
                     }
                 }
         }
