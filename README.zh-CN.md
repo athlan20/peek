@@ -172,4 +172,10 @@ tools/package.sh --arch arm64       # 仅打 Apple Silicon 单架构包
 
 ---
 
+## 支持作者
+
+喜欢这个项目？[请作者喝杯咖啡 ☕](https://peek.yuntianyou.cc/#sponsor)
+
+---
+
 项目首发于 [Linux.do 社区](https://linux.do/)。

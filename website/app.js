@@ -46,12 +46,6 @@
       "analyze.kicker": "ANALYZE · 磁盘与 AI AGENT 空间分析",
       "analyze.title": "边扫边画的方块视图，揪出隐藏的体积大户",
       "analyze.desc": "纯 Swift 实现的 Squarified Treemap 布局引擎，每 0.2 秒实时刷新快照，无需等整盘扫完即可双击逐层下钻。支持断点暂停与持久化缓存，关闭窗口也不丢失进度。",
-      "analyze.f1.title": "流式扫描 & 断点续扫",
-      "analyze.f1.desc": "扫描检查点自动持久化至本地缓存。随时暂停、关闭窗口或重启应用，下次打开无缝接着扫。",
-      "analyze.f2.title": "语义化自动着色",
-      "analyze.f2.desc": "自动区分 Apps、Dev（node_modules、DerivedData、.cargo 等）、Agents、Media、Docs 与 System，一眼辨识可清理项。",
-      "analyze.f3.title": "久置下载专项清理",
-      "analyze.f3.desc": "独立筛选 ~/Downloads 中超过 90 天未碰过的大文件与安装包，一键在访达中定位或安全移入废纸篓。",
       "analyze.agentsTitle": "内置 19+ 主流 AI 编程工具与本地模型占用专页",
       "analyze.agentsDesc": "自动聚合散落在主目录与资源库中的模型权重、缓存与会话记录：",
       "uninstall.kicker": "UNINSTALL · 可视化应用卸载器",
@@ -90,9 +84,15 @@
       "install.terminalTip": "或在终端移除隔离标记：",
       "install.copy": "复制",
       "install.copied": "已复制",
+      "sponsor.kicker": "支持独立开发",
+      "sponsor.title": "喜欢这个项目？请作者喝杯咖啡 ☕",
+      "sponsor.desc": "Peek 完全开源免费、无广告无追踪。如果它帮你省下了不少磁盘空间或排查时间，欢迎通过微信赞赏或 Ko-fi 支持后续持续维护与新特性开发。",
+      "sponsor.kofiNote": "海外支付推荐使用 Ko-fi（支持 PayPal / 信用卡）",
+      "sponsor.wechatLabel": "微信扫码赞赏 · 点击可放大",
       "footer.tagline": "轻量、原生的 macOS 菜单栏系统监控与清理工具",
       "footer.releases": "版本发布",
       "footer.issues": "问题反馈",
+      "footer.sponsor": "赞助支持 ☕",
       "footer.origin": "项目首发于 Linux.do 社区 · Built with native Swift & SwiftUI"
     },
     en: {
@@ -138,12 +138,6 @@
       "analyze.kicker": "ANALYZE · DISK & AI AGENT FOOTPRINT",
       "analyze.title": "Streaming squarified treemaps that surface hidden space hogs",
       "analyze.desc": "A pure-Swift squarified treemap engine streaming snapshots every 0.2s—drill into subfolders before the scan even finishes. Automatic checkpoints let you pause, quit, and resume anytime.",
-      "analyze.f1.title": "Live Streaming & Resume Cache",
-      "analyze.f1.desc": "Scan checkpoints persist automatically to local cache. Close the window or quit Peek anytime and continue right where you left off.",
-      "analyze.f2.title": "Semantic Color Categories",
-      "analyze.f2.desc": "Automatically classifies Apps, Dev (node_modules, DerivedData, .cargo, etc.), Agents, Media, Docs, and System for instant clarity.",
-      "analyze.f3.title": "Stale Downloads Tab",
-      "analyze.f3.desc": "Surfaces files and installers in ~/Downloads untouched for over 90 days—reveal in Finder or move safely to Trash in one click.",
       "analyze.agentsTitle": "Dedicated Footprint Tab for 19+ AI Coding Agents & Local Models",
       "analyze.agentsDesc": "Automatically aggregates scattered model weights, caches, and session histories across your home & Library folders:",
       "uninstall.kicker": "UNINSTALL · VISUAL APP UNINSTALLER",
@@ -182,9 +176,15 @@
       "install.terminalTip": "Or clear quarantine in Terminal:",
       "install.copy": "Copy",
       "install.copied": "Copied",
+      "sponsor.kicker": "SUPPORT INDIE DEVELOPMENT",
+      "sponsor.title": "Enjoying Peek? Buy the author a coffee ☕",
+      "sponsor.desc": "Peek is 100% open-source and free with zero ads or tracking. If it saved you disk space or debugging time, consider supporting ongoing development via Ko-fi or WeChat Pay.",
+      "sponsor.kofiNote": "Supports PayPal & cards via Ko-fi",
+      "sponsor.wechatLabel": "WeChat Pay · Click to enlarge",
       "footer.tagline": "Lightweight, native macOS menu bar monitor & analyzer",
       "footer.releases": "Releases",
       "footer.issues": "Issues",
+      "footer.sponsor": "Sponsor ☕",
       "footer.origin": "Originally launched on Linux.do · Built with native Swift & SwiftUI"
     }
   };
@@ -377,6 +377,18 @@
     nodes.forEach((n) => observer.observe(n));
   }
 
+  // Ensure anchor navigation lands cleanly and reveals target immediately
+  function scrollToHashTarget(behavior = "auto") {
+    const hash = window.location.hash;
+    if (!hash || hash.length <= 1) return;
+    const id = decodeURIComponent(hash.slice(1));
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    if (target.classList.contains("reveal")) target.classList.add("is-visible");
+    target.scrollIntoView({ behavior, block: "start" });
+  }
+
   // Init
   document.addEventListener("DOMContentLoaded", () => {
     applyLanguage(currentLang);
@@ -384,6 +396,12 @@
     setupCopyButtons();
     setupLightbox();
     setupReveal();
+
+    if (window.location.hash) {
+      requestAnimationFrame(() => scrollToHashTarget("auto"));
+      window.addEventListener("load", () => scrollToHashTarget("auto"), { once: true });
+    }
+    window.addEventListener("hashchange", () => scrollToHashTarget("smooth"));
 
     const toggle = document.getElementById("lang-toggle");
     if (toggle) {

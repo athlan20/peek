@@ -259,21 +259,6 @@
           </button>
         </div>
 
-        <div class="feature-trio reveal">
-          <div class="info-card">
-            <h3 data-i18n="analyze.f1.title">流式扫描 &amp; 断点续扫</h3>
-            <p data-i18n="analyze.f1.desc">扫描检查点自动持久化至本地缓存。随时暂停、关闭窗口或重启应用，下次打开无缝接着扫。</p>
-          </div>
-          <div class="info-card">
-            <h3 data-i18n="analyze.f2.title">语义化自动着色</h3>
-            <p data-i18n="analyze.f2.desc">自动区分 Apps、Dev（node_modules、DerivedData、.cargo 等）、Agents、Media、Docs 与 System，一眼辨识可清理项。</p>
-          </div>
-          <div class="info-card">
-            <h3 data-i18n="analyze.f3.title">久置下载专项清理</h3>
-            <p data-i18n="analyze.f3.desc">独立筛选 ~/Downloads 中超过 90 天未碰过的大文件与安装包，一键在访达中定位或安全移入废纸篓。</p>
-          </div>
-        </div>
-
         <!-- AI Agent Footprint Strip -->
         <div class="agents-panel reveal">
           <div class="agents-head">
@@ -459,6 +444,35 @@
         </div>
       </div>
     </section>
+
+    <!-- Sponsor / Support Section -->
+    <section class="section section-sponsor" id="sponsor">
+      <div class="container">
+        <div class="sponsor-card reveal">
+          <div class="sponsor-copy">
+            <span class="section-kicker kicker-amber" data-i18n="sponsor.kicker">支持独立开发</span>
+            <h2 class="sponsor-title" data-i18n="sponsor.title">喜欢这个项目？请作者喝杯咖啡 ☕</h2>
+            <p class="sponsor-desc" data-i18n="sponsor.desc">
+              Peek 完全开源免费、无广告无追踪。如果它帮你省下了不少磁盘空间或排查时间，欢迎通过微信赞赏或 Ko-fi 支持后续持续维护与新特性开发。
+            </p>
+
+            <div class="sponsor-kofi">
+              <a href="https://ko-fi.com/U2G122M74W" target="_blank" rel="noopener noreferrer" class="kofi-link" aria-label="Support on Ko-fi">
+                <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" height="36" />
+              </a>
+              <span class="sponsor-note" data-i18n="sponsor.kofiNote">海外支付推荐使用 Ko-fi（支持 PayPal / 信用卡）</span>
+            </div>
+          </div>
+
+          <div class="sponsor-wechat">
+            <button type="button" class="wechat-qr-trigger" data-lightbox="./assets/wechat-pay.jpg" data-caption-zh="微信扫码请作者喝杯咖啡 ☕" data-caption-en="Scan with WeChat Pay to buy the author a coffee ☕" aria-label="Enlarge WeChat Pay QR Code">
+              <img src="./assets/wechat-pay.jpg" alt="WeChat Pay QR Code" loading="lazy" width="180" height="245" />
+            </button>
+            <span class="wechat-label" data-i18n="sponsor.wechatLabel">微信扫码赞赏 · 点击可放大</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Footer -->
@@ -476,6 +490,7 @@
         <a href="https://github.com/athlan20/peek" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="https://github.com/athlan20/peek/releases" target="_blank" rel="noopener noreferrer" data-i18n="footer.releases">版本发布</a>
         <a href="https://github.com/athlan20/peek/issues" target="_blank" rel="noopener noreferrer" data-i18n="footer.issues">问题反馈</a>
+        <a href="#sponsor" data-i18n="footer.sponsor">赞助支持 ☕</a>
         <a href="https://linux.do/" target="_blank" rel="noopener noreferrer">Linux.do</a>
       </div>
     </div>

@@ -172,4 +172,10 @@ Detailed specifications and guides live in [`docs/`](docs/):
 
 ---
 
+## Support
+
+Enjoying Peek? [Buy the author a coffee ☕](https://peek.yuntianyou.cc/#sponsor)
+
+---
+
 Originally launched on the [Linux.do Community](https://linux.do/).
