@@ -39,35 +39,87 @@ struct ListeningPort: Sendable, Equatable, Identifiable {
 /// 原生 BSD 端口采集器：通过 `proc_listpids` + `proc_pidinfo(PROC_PIDLISTFDS)` + `PROC_PIDFDSOCKETINFO`
 /// 枚举本机 TCP LISTEN 端口，不依赖 `lsof` 等外部命令；并自动过滤系统后台与随机临时 IPC 端口。
 struct PortSampler {
+    /// 缓存每个 PID 的进程名与是否属于系统/忽略进程，先过滤再枚举 FD，大幅减少 `PROC_PIDFDSOCKETINFO` 系统调用。
+    private final class ProcessMetaCache: @unchecked Sendable {
+        struct Entry {
+            var name: String
+            var excluded: Bool
+        }
+
+        private let lock = NSLock()
+        private var entries: [Int32: Entry] = [:]
+
+        func resolve(pid: Int32) -> Entry {
+            lock.lock()
+            if let cached = entries[pid] {
+                lock.unlock()
+                return cached
+            }
+            lock.unlock()
+
+            let name = PortSampler.processName(pid: pid)
+            let excluded: Bool
+            if name.isEmpty || PortSampler.isIgnoredProcess(name: name) {
+                excluded = true
+            } else if let path = PortSampler.processPath(pid: pid), PortSampler.isSystemPath(path) {
+                excluded = true
+            } else {
+                excluded = false
+            }
+
+            let entry = Entry(name: name, excluded: excluded)
+            lock.lock()
+            entries[pid] = entry
+            lock.unlock()
+            return entry
+        }
+
+        func prune(keeping alivePIDs: Set<Int32>) {
+            lock.lock()
+            if entries.count > alivePIDs.count + 128 {
+                entries = entries.filter { alivePIDs.contains($0.key) }
+            }
+            lock.unlock()
+        }
+    }
+
+    private let metaCache = ProcessMetaCache()
+
     func sample() -> [ListeningPort] {
         var seen = Set<String>()
         var results: [ListeningPort] = []
+        let pids = Self.allPIDs()
 
-        for pid in Self.allPIDs() where pid > 0 {
-            let name = Self.processName(pid: pid)
-            guard !name.isEmpty, !Self.isIgnoredProcess(name: name) else { continue }
-            let path = Self.processPath(pid: pid)
-            if let path, Self.isSystemPath(path) { continue }
+        for pid in pids where pid > 0 {
+            // 先按缓存的名称/路径剔除系统进程和忽略进程，跳过其全部 FD 和 socket 系统调用。
+            let meta = metaCache.resolve(pid: pid)
+            guard !meta.excluded else { continue }
 
-            for socket in Self.listeningSockets(pid: pid) {
-                // 过滤 49152+ 临时随机 IPC 端口（如 Electron / IDE / IM 内部通信端口）。
-                guard socket.port > 0, socket.port <= 49_151 else { continue }
+            let sockets = Self.listeningSockets(pid: pid)
+            guard !sockets.isEmpty else { continue }
 
+            // 过滤 49152+ 临时随机 IPC 端口（如 Electron / IDE / IM 内部通信端口）。
+            let validSockets = sockets.filter { $0.port > 0 && $0.port <= 49_151 }
+            guard !validSockets.isEmpty else { continue }
+
+            for socket in validSockets {
                 let key = "\(pid):\(socket.port)"
                 guard seen.insert(key).inserted else { continue }
 
-                let category = Self.classify(port: socket.port, processName: name)
+                let category = Self.classify(port: socket.port, processName: meta.name)
                 results.append(
                     ListeningPort(
                         port: socket.port,
                         pid: pid,
-                        processName: name,
+                        processName: meta.name,
                         bindAddress: socket.bindAddress,
                         category: category
                     )
                 )
             }
         }
+
+        metaCache.prune(keeping: Set(pids))
 
         return results.sorted { lhs, rhs in
             if lhs.category.priority != rhs.category.priority {

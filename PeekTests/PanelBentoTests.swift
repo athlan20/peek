@@ -92,7 +92,8 @@ final class PanelBentoTests: XCTestCase {
     }
 
     func testThermalAndDiskSamplersSmoke() {
-        let thermal = ThermalSampler().sample()
+        var thermalSampler = ThermalSampler()
+        let thermal = thermalSampler.sample()
         if let temp = thermal.temperatureCelsius {
             XCTAssertTrue((10.0...120.0).contains(temp))
         }

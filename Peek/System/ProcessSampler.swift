@@ -4,14 +4,15 @@ import Darwin
 /// 进程采集：`proc_listpids` 列出所有进程，`proc_pidinfo(PROC_PIDTASKINFO)` 读 CPU 时间和内存。
 ///
 /// 前后两次采样做差得 CPU 占用（单核满载算 1.0）。读不到的进程（无权限、已退出）直接跳过。
-/// 只在独立窗口用，调用频率由 `SamplingEngine` 控制在 5 秒一次。
+/// 只为排进前 5 的候选进程调用 `proc_name`，并缓存进程名，避免对数百个进程重复发起系统调用。
 struct ProcessSampler {
     private var previous: (time: Date, cpuTicks: [Int32: UInt64])?
+    private var nameCache: [Int32: String] = [:]
 
     /// 预热基线，让紧接着的第一次 `sample()` 就能立刻算出真实 CPU 占用。
     mutating func prime() {
         let now = Date()
-        var current: [Int32: UInt64] = [:]
+        var current = [Int32: UInt64](minimumCapacity: 512)
         for pid in Self.allPIDs() where pid > 0 {
             guard let info = Self.taskInfo(pid: pid) else { continue }
             current[pid] = info.pti_total_user &+ info.pti_total_system
@@ -21,41 +22,105 @@ struct ProcessSampler {
 
     mutating func sample() -> (topCPU: [ProcessUsage], topMemory: [ProcessUsage]) {
         let now = Date()
-        var current: [Int32: UInt64] = [:]
-        var usages: [ProcessUsage] = []
+        let pids = Self.allPIDs()
+        var current = [Int32: UInt64](minimumCapacity: pids.count)
 
-        for pid in Self.allPIDs() where pid > 0 {
-            guard let info = Self.taskInfo(pid: pid) else { continue }
-            let ticks = info.pti_total_user &+ info.pti_total_system
-            current[pid] = ticks
-            let name = Self.name(pid: pid)
-            guard !name.isEmpty else { continue }
-            usages.append(
-                ProcessUsage(
-                    pid: pid, name: name, cpu: 0, memoryBytes: info.pti_resident_size))
+        struct RawSample {
+            var pid: Int32
+            var cpu: Double
+            var memoryBytes: UInt64
         }
 
-        let baseline = previous
-        previous = (now, current)
+        // 只维护前 10 个候选（预留余量防个别进程名不可读），避免对 700+ 进程做两次全量排序。
+        let candidateLimit = 10
+        var byCPU: [RawSample] = []
+        var byMemory: [RawSample] = []
+        byCPU.reserveCapacity(candidateLimit + 1)
+        byMemory.reserveCapacity(candidateLimit + 1)
 
-        if let baseline {
-            let interval = now.timeIntervalSince(baseline.time)
-            // 基线太旧（面板刚重新打开、中间停了很久）就不用它，否则算出来的是长时段均值。
-            if interval > 0, interval <= 30 {
-                for index in usages.indices {
-                    let pid = usages[index].pid
-                    guard let before = baseline.cpuTicks[pid],
-                        let after = current[pid], after >= before
-                    else { continue }
-                    usages[index].cpu = Self.seconds(fromTicks: after - before) / interval
-                }
+        func insertTop(
+            _ sample: RawSample,
+            into list: inout [RawSample],
+            higher: (RawSample, RawSample) -> Bool
+        ) {
+            if list.count == candidateLimit, let last = list.last, !higher(sample, last) {
+                return
+            }
+            var idx = list.count
+            while idx > 0 && higher(sample, list[idx - 1]) {
+                idx -= 1
+            }
+            list.insert(sample, at: idx)
+            if list.count > candidateLimit {
+                list.removeLast()
             }
         }
 
-        // 分别取按 CPU 排前 5 与按内存排前 5。
-        let topCPU = Array(usages.sorted { ($0.cpu, $0.memoryBytes) > ($1.cpu, $1.memoryBytes) }.prefix(5))
-        let topMemory = Array(usages.sorted { ($0.memoryBytes, $0.cpu) > ($1.memoryBytes, $1.cpu) }.prefix(5))
+        let baseline = previous
+        let validInterval: TimeInterval? = {
+            guard let baseline else { return nil }
+            let dt = now.timeIntervalSince(baseline.time)
+            return (dt > 0 && dt <= 30) ? dt : nil
+        }()
+
+        for pid in pids where pid > 0 {
+            guard let info = Self.taskInfo(pid: pid) else { continue }
+            let ticks = info.pti_total_user &+ info.pti_total_system
+            current[pid] = ticks
+
+            var cpu = 0.0
+            if let dt = validInterval,
+                let before = baseline?.cpuTicks[pid],
+                ticks >= before
+            {
+                cpu = Self.seconds(fromTicks: ticks - before) / dt
+            }
+            let sample = RawSample(pid: pid, cpu: cpu, memoryBytes: info.pti_resident_size)
+            insertTop(sample, into: &byCPU) { ($0.cpu, $0.memoryBytes) > ($1.cpu, $1.memoryBytes) }
+            insertTop(sample, into: &byMemory) { ($0.memoryBytes, $0.cpu) > ($1.memoryBytes, $1.cpu) }
+        }
+
+        previous = (now, current)
+
+        // 清理已退出进程的缓存，防止长期运行字典无限增长。
+        if nameCache.count > current.count + 128 {
+            nameCache = nameCache.filter { current[$0.key] != nil }
+        }
+
+        // 只对排在前面的候选查进程名（通常只需查 5~10 个 PID）。
+
+        var topCPU: [ProcessUsage] = []
+        topCPU.reserveCapacity(5)
+        for item in byCPU {
+            guard topCPU.count < 5 else { break }
+            let procName = resolvedName(pid: item.pid)
+            guard !procName.isEmpty else { continue }
+            topCPU.append(
+                ProcessUsage(pid: item.pid, name: procName, cpu: item.cpu, memoryBytes: item.memoryBytes))
+        }
+
+        var topMemory: [ProcessUsage] = []
+        topMemory.reserveCapacity(5)
+        for item in byMemory {
+            guard topMemory.count < 5 else { break }
+            let procName = resolvedName(pid: item.pid)
+            guard !procName.isEmpty else { continue }
+            topMemory.append(
+                ProcessUsage(pid: item.pid, name: procName, cpu: item.cpu, memoryBytes: item.memoryBytes))
+        }
+
         return (topCPU, topMemory)
+    }
+
+    private mutating func resolvedName(pid: Int32) -> String {
+        if let cached = nameCache[pid] {
+            return cached
+        }
+        let fetched = Self.name(pid: pid)
+        if !fetched.isEmpty {
+            nameCache[pid] = fetched
+        }
+        return fetched
     }
 
     /// `proc_taskinfo` 的 CPU 时间是 mach absolute time 计数（不是纳秒），按 timebase 换算成秒。

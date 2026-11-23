@@ -4,7 +4,6 @@ import SwiftUI
 
 struct CPUCard: View {
     let stats: CPUStats
-    let perCoreHistory: [[Double]]
     let topProcesses: [ProcessUsage]
 
     @State private var isHovered = false
@@ -288,7 +287,7 @@ private struct ProcessMondrianGrid: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
             .animation(
-                .spring(response: 0.65, dampingFraction: 0.80, blendDuration: 0.25),
+                .easeOut(duration: 0.18),
                 value: dims
             )
         }
@@ -359,24 +358,29 @@ private struct ProcessMondrianGrid: View {
         let usableW = size.width - gap
         let usableH = size.height - gap
 
+        // 量化到 2pt 步长，避免进程 CPU 1%~2% 的微小波动每 2 秒触发整组 Mondrian 块动画重排。
+        func snap(_ value: CGFloat) -> CGFloat {
+            (value / 2).rounded() * 2
+        }
+
         let heroShare = min(0.56, max(0.32, (w0 / total) * 1.15))
-        let leftW = (usableW * heroShare).rounded()
+        let leftW = snap(usableW * heroShare)
         let rightW = max(0, usableW - leftW)
 
         let topShare = min(0.56, max(0.36, (w1 / restSum) * 1.10))
-        let topH = (usableH * topShare).rounded()
+        let topH = snap(usableH * topShare)
         let botH = max(0, usableH - topH)
 
         let botUsableW = max(0, rightW - gap)
         let botSum = max(0.001, w2 + w3 + w4)
         let c2Share = min(0.62, max(0.38, (w2 / botSum) * 1.05))
-        let c2W = (botUsableW * c2Share).rounded()
+        let c2W = snap(botUsableW * c2Share)
         let stackW = max(0, botUsableW - c2W)
 
         let stackUsableH = max(0, botH - gap)
         let pairSum = max(0.001, w3 + w4)
         let c3Share = min(0.62, max(0.38, w3 / pairSum))
-        let c3H = (stackUsableH * c3Share).rounded()
+        let c3H = snap(stackUsableH * c3Share)
         let c4H = max(0, stackUsableH - c3H)
 
         return MondrianDimensions(
@@ -430,7 +434,6 @@ private struct ProcessMondrianTile: View {
                 )
             }
             .clipShape(shape)
-            .shadow(color: isHovered ? mode.hoverGlowColor.opacity(0.28) : .clear, radius: 4)
             .animation(.easeOut(duration: 0.14), value: isHovered)
             .help(tooltipText)
     }
@@ -455,7 +458,6 @@ private struct ProcessMondrianTile: View {
                 Text(verbatim: value)
                     .font(.system(size: 8, weight: .medium).monospacedDigit())
                     .foregroundStyle(Color.white.opacity(0.78))
-                    .contentTransition(.numericText())
                     .lineLimit(1)
             }
         } else if width >= 54 && height >= 16 {
@@ -469,14 +471,12 @@ private struct ProcessMondrianTile: View {
                 Text(verbatim: value)
                     .font(.system(size: 7.8, weight: .medium).monospacedDigit())
                     .foregroundStyle(Color.white.opacity(0.78))
-                    .contentTransition(.numericText())
                     .lineLimit(1)
             }
         } else if width >= 22 && height >= 13 {
             Text(verbatim: value)
                 .font(.system(size: 7.5, weight: .medium).monospacedDigit())
                 .foregroundStyle(PanelPalette.textPrimary.opacity(0.9))
-                .contentTransition(.numericText())
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -677,11 +677,6 @@ struct StorageCard: View {
             freeBytes: stats.freeBytes)
     }
 
-    /// 精确 100 格映射表（每 1 格 = 1% 磁盘总容量），用最大余数法保证 5 类合计严格等于 100 格。
-    private var sectorCells: [StorageCategory] {
-        Self.make100SectorCells(breakdown: breakdown)
-    }
-
     var body: some View {
         Button {
             onOpenAnalyze?()
@@ -739,11 +734,16 @@ struct StorageCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                    // 20×5 = 100 格精确百分比扇区图（每格 = 1%），支持逐格连续 Hover 联动对应分类。
+                    // 20×5 = 100 格精确百分比扇区图（每格 = 1%），独立封装并按 breakdown 等值跳过磁盘 R/W 引发的无关重绘。
                     StorageSectorGrid(
-                        cells: sectorCells,
-                        hoveredCategory: $hoveredCategory
-                    )
+                        breakdown: breakdown,
+                        hoveredCategory: hoveredCategory
+                    ) { next in
+                        if hoveredCategory != next {
+                            hoveredCategory = next
+                        }
+                    }
+                    .equatable()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.vertical, 1)
 
@@ -783,14 +783,12 @@ struct StorageCard: View {
             Circle()
                 .fill(active ? color : PanelPalette.inactivePixel)
                 .frame(width: 4.5, height: 4.5)
-                .shadow(color: active ? color.opacity(0.65) : .clear, radius: 2)
             Text(verbatim: prefix)
                 .font(.system(size: 8.5, weight: .semibold))
                 .foregroundStyle(active ? color : PanelPalette.textMuted)
             Text(verbatim: PanelFormat.rate(bytesPerSecond))
                 .font(.system(size: 9.5, weight: .medium).monospacedDigit())
                 .foregroundStyle(active ? PanelPalette.textPrimary : PanelPalette.textSecondary)
-                .contentTransition(.numericText())
         }
     }
 
@@ -839,7 +837,7 @@ struct StorageCard: View {
         }
     }
 
-    private static func make100SectorCells(breakdown: DiskBreakdown) -> [StorageCategory] {
+    fileprivate static func make100SectorCells(breakdown: DiskBreakdown) -> [StorageCategory] {
         let total = max(1, Double(breakdown.totalBytes))
         let exact = StorageCategory.allCases.map { cat -> (StorageCategory, Double) in
             (cat, Double(cat.bytes(in: breakdown)) / total * 100.0)
@@ -863,33 +861,42 @@ struct StorageCard: View {
     }
 }
 
-private struct StorageSectorGrid: View {
-    let cells: [StorageCategory]
-    @Binding var hoveredCategory: StorageCategory?
+private struct StorageSectorGrid: View, Equatable {
+    let breakdown: DiskBreakdown
+    let hoveredCategory: StorageCategory?
+    let onHoverCategory: (StorageCategory?) -> Void
 
     private let cols = 20
     private let rows = 5
 
+    nonisolated static func == (lhs: StorageSectorGrid, rhs: StorageSectorGrid) -> Bool {
+        lhs.breakdown == rhs.breakdown && lhs.hoveredCategory == rhs.hoveredCategory
+    }
+
     var body: some View {
+        let cells = StorageCard.make100SectorCells(breakdown: breakdown)
         GeometryReader { proxy in
             Canvas { context, size in
                 let gap: CGFloat = 1.8
                 let cellW = max(2, (size.width - gap * CGFloat(cols - 1)) / CGFloat(cols))
                 let cellH = max(2, (size.height - gap * CGFloat(rows - 1)) / CGFloat(rows))
 
-                // 逐行从左到右填充 100 格，每格严格 = 1% 磁盘容量。
+                // 按 5 个分类合并 Path，只需最多 5 次 context.fill 即可画完 100 格。
+                var paths: [StorageCategory: Path] = [:]
                 for index in 0..<(cols * rows) {
                     let row = index / cols
                     let col = index % cols
                     let x = CGFloat(col) * (cellW + gap)
                     let y = CGFloat(row) * (cellH + gap)
                     let rect = CGRect(x: x, y: y, width: cellW, height: cellH)
-
                     let category = index < cells.count ? cells[index] : .free
+                    paths[category, default: Path()].addRoundedRect(
+                        in: rect, cornerSize: CGSize(width: 1.2, height: 1.2))
+                }
+                for category in StorageCategory.allCases {
+                    guard let path = paths[category], !path.isEmpty else { continue }
                     let color = Self.cellColor(for: category, hovered: hoveredCategory)
-                    context.fill(
-                        Path(roundedRect: rect, cornerRadius: 1.2),
-                        with: .color(color))
+                    context.fill(path, with: .color(color))
                 }
             }
             .onContinuousHover { phase in
@@ -900,10 +907,10 @@ private struct StorageSectorGrid: View {
                     let row = min(rows - 1, max(0, Int((location.y / proxy.size.height) * CGFloat(rows))))
                     let idx = row * cols + col
                     if idx >= 0 && idx < cells.count {
-                        hoveredCategory = cells[idx]
+                        onHoverCategory(cells[idx])
                     }
                 case .ended:
-                    hoveredCategory = nil
+                    onHoverCategory(nil)
                 }
             }
         }
@@ -941,7 +948,6 @@ private struct PortRowPill: View {
                 Circle()
                     .fill(color)
                     .frame(width: 4.5, height: 4.5)
-                    .shadow(color: color.opacity(0.75), radius: 2)
 
                 Text(verbatim: ":\(item.port)")
                     .font(.system(size: 10, weight: .semibold).monospacedDigit())
@@ -1051,7 +1057,6 @@ struct BatteryCard: View {
                     Text(verbatim: PanelFormat.percent(stats.level))
                         .font(.system(size: 22, weight: .medium).monospacedDigit())
                         .foregroundStyle(isAlert ? PanelPalette.alertAccent : PanelPalette.textPrimary)
-                        .contentTransition(.numericText())
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
@@ -1083,7 +1088,6 @@ struct BatteryCard: View {
                         Text(verbatim: BatteryCard.formatWatts(power.systemWatts))
                             .font(.system(size: 9.2, weight: .semibold).monospacedDigit())
                             .foregroundStyle(PanelPalette.textPrimary)
-                            .contentTransition(.numericText())
                     }
                     Spacer(minLength: 2)
                     if let input = power.adapterInputWatts, power.isExternalConnected {
@@ -1357,7 +1361,6 @@ struct CompactThermalCard: View {
                         Circle()
                             .fill(isAlert ? PanelPalette.alertAccent : stateColor)
                             .frame(width: 4.5, height: 4.5)
-                            .shadow(color: stateColor.opacity(0.75), radius: 2)
                         Text(verbatim: stateLabel)
                             .font(.system(size: 8.5, weight: .semibold))
                             .foregroundStyle(stateColor)
@@ -1439,7 +1442,6 @@ struct CompactThermalCard: View {
                                 )
                             )
                             .frame(width: max(5, proxy.size.width * fraction))
-                            .shadow(color: isRowHovered ? color.opacity(0.55) : .clear, radius: 3)
                     }
                 }
             }
@@ -1448,7 +1450,6 @@ struct CompactThermalCard: View {
             Text(verbatim: PanelFormat.temperature(celsius))
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(celsius != nil ? PanelPalette.textPrimary : PanelPalette.textMuted)
-                .contentTransition(.numericText())
                 .frame(width: 34, alignment: .trailing)
         }
         .opacity(dimmed ? 0.45 : 1.0)
@@ -1592,7 +1593,6 @@ struct NetworkPortsCard: View {
             Text(verbatim: PanelFormat.rate(bytesPerSecond))
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(PanelPalette.textPrimary)
-                .contentTransition(.numericText())
         }
     }
 

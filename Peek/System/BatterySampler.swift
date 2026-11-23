@@ -5,9 +5,35 @@ import IOKit.ps
 /// 电池采集：电量、是否充电用 `IOPSCopyPowerSourcesInfo`，
 /// 健康度、循环次数用 IOKit 的 `AppleSmartBattery` 属性。台式机没有电池时返回 nil。
 struct BatterySampler {
+    /// 健康度与循环次数变化极慢，5 分钟缓存一次，避免每秒查一次 `AppleSmartBattery` IOKit 服务。
+    private final class SmartBatteryCache: @unchecked Sendable {
+        private static let ttl: TimeInterval = 300
+        private let lock = NSLock()
+        private var cached: (time: Date, value: (health: Double?, cycleCount: Int?)?)?
+
+        func value() -> (health: Double?, cycleCount: Int?)? {
+            let now = Date()
+            lock.lock()
+            if let cached, now.timeIntervalSince(cached.time) < Self.ttl {
+                let result = cached.value
+                lock.unlock()
+                return result
+            }
+            lock.unlock()
+
+            let fresh = BatterySampler.smartBattery()
+            lock.lock()
+            cached = (now, fresh)
+            lock.unlock()
+            return fresh
+        }
+    }
+
+    private let smartCache = SmartBatteryCache()
+
     func sample() -> BatteryStats? {
         guard let powerSource = Self.powerSource() else { return nil }
-        let smart = Self.smartBattery()
+        let smart = smartCache.value()
         return BatteryStats(
             level: powerSource.level,
             isCharging: powerSource.isCharging,

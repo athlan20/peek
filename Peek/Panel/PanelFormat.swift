@@ -68,13 +68,27 @@ enum PanelFormat {
         return "\(mins)m"
     }
 
-    /// 网速，如 "1.2 MB/s"。
+    /// 网速，如 "1.2 MB/s"（纯算术格式化，与十进制 `ByteCountFormatter(.file)` 口径一致，但避免每帧新建 Formatter）。
     static func rate(_ bytesPerSecond: Double) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.zeroPadsFractionDigits = false
-        return formatter.string(fromByteCount: Int64(max(0, bytesPerSecond))) + "/s"
+        let bps = max(0, bytesPerSecond)
+        if bps >= 1_000_000_000 {
+            let gb = bps / 1_000_000_000
+            return formatRateValue(gb, unit: "GB/s")
+        }
+        if bps >= 1_000_000 {
+            let mb = bps / 1_000_000
+            return formatRateValue(mb, unit: "MB/s")
+        }
+        let kb = Int((bps / 1_000).rounded())
+        return "\(kb) KB/s"
+    }
+
+    private static func formatRateValue(_ value: Double, unit: String) -> String {
+        let rounded = (value * 10).rounded() / 10
+        if rounded.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(rounded)) \(unit)"
+        }
+        return String(format: "%.1f %@", rounded, unit)
     }
 
     // MARK: - 运行时长

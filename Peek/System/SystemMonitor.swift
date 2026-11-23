@@ -100,7 +100,7 @@ final class SystemMonitor {
 
     /// 采样循环。取消时（切换模式）立刻退出，不发布过期结果。
     private func run() async {
-        await engine.prime()
+        await engine.prime(includeProcesses: mode == .panelOpen)
         // 留一点时间让 tick / 字节计数产生差值，第一次采样才有意义。
         do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
 

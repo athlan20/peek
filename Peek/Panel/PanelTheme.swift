@@ -47,7 +47,7 @@ enum PanelPalette {
     static let segFree = Color.white.opacity(0.22)
 }
 
-/// 统一的 Bento 卡片容器：深色底 + 顶部微光渐变 + 顶部高光细边 + Hover 提亮 + 告警呼吸态。
+/// 统一的 Bento 卡片容器：深色底 + 顶部微光渐变 + 顶部高光细边 + Hover 提亮 + 告警高亮态。
 struct BentoCard<Content: View>: View {
     let borderColor: Color
     let topGlow: Color
@@ -55,8 +55,6 @@ struct BentoCard<Content: View>: View {
     var isAlert: Bool = false
     var isHovered: Bool = false
     @ViewBuilder let content: () -> Content
-
-    @State private var pulsePhase = false
 
     private var effectiveBorder: Color {
         isAlert ? PanelPalette.alertAccent : borderColor
@@ -67,12 +65,12 @@ struct BentoCard<Content: View>: View {
     }
 
     private var borderOpacity: Double {
-        if isAlert { return pulsePhase ? 0.95 : 0.55 }
+        if isAlert { return isHovered ? 0.95 : 0.80 }
         return isHovered ? 0.88 : 0.55
     }
 
     private var glowOpacity: Double {
-        if isAlert { return pulsePhase ? 0.72 : 0.45 }
+        if isAlert { return isHovered ? 0.72 : 0.58 }
         return isHovered ? 0.68 : 0.52
     }
 
@@ -116,40 +114,25 @@ struct BentoCard<Content: View>: View {
                 shape
                     .strokeBorder(effectiveBorder.opacity(borderOpacity), lineWidth: isAlert ? 1.2 : 1)
             }
-            .shadow(
-                color: effectiveBorder.opacity(isAlert ? (pulsePhase ? 0.24 : 0.08) : (isHovered ? 0.16 : 0)),
-                radius: isAlert ? 8 : 6,
-                x: 0,
-                y: 2
-            )
             .clipShape(shape)
             .animation(.easeOut(duration: 0.16), value: isHovered)
-            .onAppear { startAlertPulseIfNeeded() }
-            .onChange(of: isAlert) { _, _ in startAlertPulseIfNeeded() }
-    }
-
-    private func startAlertPulseIfNeeded() {
-        if isAlert {
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                pulsePhase = true
-            }
-        } else {
-            withAnimation(.easeOut(duration: 0.25)) {
-                pulsePhase = false
-            }
-        }
     }
 }
 
-/// 卡片告警状态指示灯：平时隐藏，超出阈值时在标题旁亮起柔光红点。
+/// 卡片告警状态指示灯：平时隐藏，超出阈值时在标题旁亮起柔光红点（用双层同心圆替代 `.shadow` 避免离屏阴影开销）。
 struct AlertPulseDot: View {
     var color: Color = PanelPalette.alertAccent
 
     var body: some View {
-        Circle()
-            .fill(color)
-            .frame(width: 5, height: 5)
-            .shadow(color: color.opacity(0.85), radius: 3)
+        ZStack {
+            Circle()
+                .fill(color.opacity(0.28))
+                .frame(width: 9, height: 9)
+            Circle()
+                .fill(color)
+                .frame(width: 5, height: 5)
+        }
+        .frame(width: 5, height: 5)
     }
 }
 
@@ -193,7 +176,6 @@ struct ThinMetricBar: View {
                 Capsule()
                     .fill(tint)
                     .frame(width: max(4, geo.size.width * clamped))
-                    .shadow(color: tint.opacity(0.45), radius: 2, x: 0, y: 0)
             }
         }
         .frame(height: 3)

@@ -21,7 +21,6 @@ struct PanelView: View {
             HStack(spacing: 10) {
                 CPUCard(
                     stats: snapshot.cpu,
-                    perCoreHistory: monitor.perCoreHistory,
                     topProcesses: snapshot.topProcesses
                 )
                 MemoryCard(

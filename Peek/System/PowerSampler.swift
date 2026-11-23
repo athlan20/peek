@@ -2,6 +2,7 @@ import Foundation
 import IOKit
 
 /// 整机实时功耗与电源适配器采集：纯本地 IOKit 只读 `AppleSmartBattery`（零管理员权限、零联网）。
+/// 按需单键读取属性，避免每秒调用 `IORegistryEntryCreateCFProperties` 整棵序列化上百个无关字段。
 struct PowerSampler {
     func sample() -> PowerStats {
         let service = IOServiceGetMatchingService(
@@ -9,19 +10,18 @@ struct PowerSampler {
         guard service != 0 else { return .empty }
         defer { IOObjectRelease(service) }
 
-        var propsRef: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &propsRef, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-            let dict = propsRef?.takeRetainedValue() as? [String: Any]
-        else {
-            return .empty
+        func prop(_ key: String) -> Any? {
+            IORegistryEntryCreateCFProperty(
+                service, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue()
         }
 
-        let isExternal = (dict["ExternalConnected"] as? Bool) ?? false
-        let isCharging = (dict["IsCharging"] as? Bool) ?? false
+        let isExternal = (prop("ExternalConnected") as? Bool) ?? false
+        let isCharging = (prop("IsCharging") as? Bool) ?? false
 
-        // 1. 电源适配器额定功率（如 94W / 67W / 140W）。
+        // 1. 电源适配器额定功率（仅外接电源时读取，如 94W / 67W / 140W）。
         var adapterRatedWatts: Int?
-        if let adapter = dict["AdapterDetails"] as? [String: Any],
+        if isExternal,
+            let adapter = prop("AdapterDetails") as? [String: Any],
             let watts = Self.intValue(adapter["Watts"]), watts > 0
         {
             adapterRatedWatts = watts
@@ -32,7 +32,7 @@ struct PowerSampler {
         var adapterInputWatts: Double?
         var batteryWatts: Double?
 
-        if let telemetry = dict["PowerTelemetryData"] as? [String: Any] {
+        if let telemetry = prop("PowerTelemetryData") as? [String: Any] {
             if let sysLoadMW = Self.doubleValue(telemetry["SystemLoad"]), sysLoadMW > 0 {
                 systemWatts = sysLoadMW / 1000.0
             }
@@ -46,8 +46,9 @@ struct PowerSampler {
 
         // 3. Intel Mac 或无 `PowerTelemetryData` 时，用电池瞬时电压 × 电流（mV × mA）估算功耗。
         if systemWatts == nil {
-            if let voltageMV = Self.doubleValue(dict["Voltage"]),
-                let ampMA = Self.signedInt64Value(dict["InstantAmperage"]) ?? Self.signedInt64Value(dict["Amperage"])
+            if let voltageMV = Self.doubleValue(prop("Voltage")),
+                let ampMA = Self.signedInt64Value(prop("InstantAmperage"))
+                    ?? Self.signedInt64Value(prop("Amperage"))
             {
                 let watts = (voltageMV * Double(ampMA)) / 1_000_000.0
                 if batteryWatts == nil {

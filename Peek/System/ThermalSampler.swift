@@ -6,15 +6,17 @@ import IOKit
 /// Apple Silicon 上若某类 SMC 温度键读不到，再回退到 IOHID 温度传感器。
 /// 无风扇机型（如 MacBook Air）或读不到时返回 nil，由面板优雅降级展示。
 struct ThermalSampler {
-    func sample() -> ThermalStats {
+    /// 记住本机 IOHID 实际存在哪些通道，避免 SMC 缺失某通道（如无 SSD 传感器）时每秒徒劳全扫 IOHID。
+    private var hidAvailability: (cpu: Bool, gpu: Bool, ssd: Bool)?
+
+    mutating func sample() -> ThermalStats {
         var cpuTemp: Double?
         var gpuTemp: Double?
         var ssdTemp: Double?
         var fanRPM: Int?
         var fanCount = 0
 
-        if let smc = SMCConnection() {
-            defer { smc.close() }
+        if let smc = SMCConnection.shared {
             let fans = smc.readFans()
             fanCount = fans.count
             fanRPM = fans.rpm
@@ -23,8 +25,16 @@ struct ThermalSampler {
             ssdTemp = smc.readSSDTemperature()
         }
 
-        if cpuTemp == nil || gpuTemp == nil || ssdTemp == nil {
-            let hid = IOHIDThermalReader.readTemperatures()
+        let needCPU = cpuTemp == nil && (hidAvailability?.cpu ?? true)
+        let needGPU = gpuTemp == nil && (hidAvailability?.gpu ?? true)
+        let needSSD = ssdTemp == nil && (hidAvailability?.ssd ?? true)
+
+        if needCPU || needGPU || needSSD {
+            let hid = IOHIDThermalReader.readTemperatures(
+                needCPU: needCPU, needGPU: needGPU, needSSD: needSSD)
+            if hidAvailability == nil {
+                hidAvailability = (hid.cpu != nil, hid.gpu != nil, hid.ssd != nil)
+            }
             if cpuTemp == nil { cpuTemp = hid.cpu }
             if gpuTemp == nil { gpuTemp = hid.gpu }
             if ssdTemp == nil { ssdTemp = hid.ssd }
@@ -39,10 +49,37 @@ struct ThermalSampler {
     }
 }
 
-// MARK: - AppleSMC（纯只读）
+// MARK: - AppleSMC（纯只读，持久连接 + 键元数据与有效键缓存）
 
-private struct SMCConnection {
+private final class SMCConnection: @unchecked Sendable {
+    static let shared = SMCConnection()
+
     private let connection: io_connect_t
+    private let lock = NSLock()
+    /// 缓存每个 4CC 键的 `(dataSize, dataType)`（若该键在本机不存在则存 `nil`），避免每秒重复发 selector 9。
+    private var keyInfoCache: [UInt32: (size: UInt32, type: UInt32)?] = [:]
+    /// 首次探测后记住本机实际有效的温度键列表，后续只读有效键。
+    private var activeCPUKeys: [String]?
+    private var activeGPUKeys: [String]?
+    private var activeSSDKeys: [String]?
+    private var cachedFanCount: Int?
+
+    private static let candidateCPUKeys = [
+        "Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P",
+        "Tp0X", "Tp0b", "Tp0f", "Tp0j",
+        "Tc0a", "Tc0b", "TC0P", "TC0D", "TC0E", "TC0F", "TC0C", "TC1C",
+    ]
+
+    private static let candidateGPUKeys = [
+        "Tg05", "Tg0D", "Tg0L", "Tg0T", "Tg0f", "Tg0j",
+        "Tg04", "Tg0C", "Tg0K", "Tg0S", "Tg1b", "Tg1p", "Tg0P",
+        "TG0D", "TG0P", "TG0E", "TG0F",
+    ]
+
+    private static let candidateSSDKeys = [
+        "TH0a", "TH0b", "TH0c", "TH0x", "TH1a", "TH1b",
+        "TN0D", "TN0P", "TN0H",
+    ]
 
     init?() {
         let service = IOServiceGetMatchingService(
@@ -57,20 +94,29 @@ private struct SMCConnection {
         self.connection = conn
     }
 
-    func close() {
+    deinit {
         IOServiceClose(connection)
     }
 
     func readFans() -> (count: Int, rpm: Int?) {
-        guard let countValue = readDouble(key: "FNum") else {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let count: Int
+        if let cached = cachedFanCount {
+            count = cached
+        } else if let countValue = readDoubleLocked(key: "FNum") {
+            count = max(0, min(8, Int(countValue.rounded())))
+            cachedFanCount = count
+        } else {
+            cachedFanCount = 0
             return (0, nil)
         }
-        let count = max(0, min(8, Int(countValue.rounded())))
         guard count > 0 else { return (0, nil) }
 
         var maxRPM: Double?
         for index in 0..<count {
-            if let rpm = readDouble(key: "F\(index)Ac"), rpm >= 0, rpm < 20_000 {
+            if let rpm = readDoubleLocked(key: "F\(index)Ac"), rpm >= 0, rpm < 20_000 {
                 maxRPM = max(maxRPM ?? 0, rpm)
             }
         }
@@ -78,64 +124,83 @@ private struct SMCConnection {
     }
 
     func readCPUTemperature() -> Double? {
-        // 兼容 Apple Silicon（M1/M2/M3/M4 系列）与 Intel Mac 常见 CPU 温度键。
-        readAverageTemperature(keys: [
-            "Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P",
-            "Tp0X", "Tp0b", "Tp0f", "Tp0j",
-            "Tc0a", "Tc0b", "TC0P", "TC0D", "TC0E", "TC0F", "TC0C", "TC1C",
-        ])
+        lock.lock()
+        defer { lock.unlock() }
+        return readAverageTemperatureLocked(
+            candidates: Self.candidateCPUKeys, activeCache: &activeCPUKeys)
     }
 
     func readGPUTemperature() -> Double? {
-        // 兼容 Apple Silicon（Tg*）与 Intel Mac（TG*）GPU 温度键。
-        readAverageTemperature(keys: [
-            "Tg05", "Tg0D", "Tg0L", "Tg0T", "Tg0f", "Tg0j",
-            "Tg04", "Tg0C", "Tg0K", "Tg0S", "Tg1b", "Tg1p", "Tg0P",
-            "TG0D", "TG0P", "TG0E", "TG0F",
-        ])
+        lock.lock()
+        defer { lock.unlock() }
+        return readAverageTemperatureLocked(
+            candidates: Self.candidateGPUKeys, activeCache: &activeGPUKeys)
     }
 
     func readSSDTemperature() -> Double? {
-        // 兼容 Apple Silicon NAND（TH*）与 Intel SSD（TN*）温度键。
-        readAverageTemperature(keys: [
-            "TH0a", "TH0b", "TH0c", "TH0x", "TH1a", "TH1b",
-            "TN0D", "TN0P", "TN0H",
-        ])
+        lock.lock()
+        defer { lock.unlock() }
+        return readAverageTemperatureLocked(
+            candidates: Self.candidateSSDKeys, activeCache: &activeSSDKeys)
     }
 
-    private func readAverageTemperature(keys: [String]) -> Double? {
+    private func readAverageTemperatureLocked(
+        candidates: [String], activeCache: inout [String]?
+    ) -> Double? {
+        let keysToRead = activeCache ?? candidates
         var readings: [Double] = []
-        for key in keys {
-            if let value = readDouble(key: key), (10.0...120.0).contains(value) {
+        var discovered: [String] = []
+
+        for key in keysToRead {
+            if let value = readDoubleLocked(key: key), (10.0...120.0).contains(value) {
                 readings.append(value)
+                if activeCache == nil {
+                    discovered.append(key)
+                }
             }
+        }
+        if activeCache == nil {
+            activeCache = discovered
         }
         guard !readings.isEmpty else { return nil }
         return readings.reduce(0, +) / Double(readings.count)
     }
 
-    private func readDouble(key: String) -> Double? {
+    private func readDoubleLocked(key: String) -> Double? {
         guard let fourCC = Self.fourCharCode(key) else { return nil }
 
-        // 第一步：查询键的 dataSize 和 dataType（selector 9 = kSMCGetKeyInfo）。
-        var infoInput = SMCKeyData()
-        infoInput.key = fourCC
-        infoInput.data8 = 9
-        guard let infoOutput = call(input: infoInput) else { return nil }
-
-        let dataSize = infoOutput.keyInfo.dataSize
-        let dataType = infoOutput.keyInfo.dataType
-        guard dataSize > 0, dataSize <= 32 else { return nil }
+        let keyMeta: (size: UInt32, type: UInt32)
+        if let cached = keyInfoCache[fourCC] {
+            guard let valid = cached else { return nil }
+            keyMeta = valid
+        } else {
+            // 第一步：查询键的 dataSize 和 dataType（selector 9 = kSMCGetKeyInfo），结果永久缓存。
+            var infoInput = SMCKeyData()
+            infoInput.key = fourCC
+            infoInput.data8 = 9
+            guard let infoOutput = call(input: infoInput) else {
+                keyInfoCache[fourCC] = nil
+                return nil
+            }
+            let dataSize = infoOutput.keyInfo.dataSize
+            let dataType = infoOutput.keyInfo.dataType
+            guard dataSize > 0, dataSize <= 32 else {
+                keyInfoCache[fourCC] = nil
+                return nil
+            }
+            keyMeta = (dataSize, dataType)
+            keyInfoCache[fourCC] = keyMeta
+        }
 
         // 第二步：读取键的原始字节（selector 5 = kSMCReadKey）。
         var readInput = SMCKeyData()
         readInput.key = fourCC
-        readInput.keyInfo.dataSize = dataSize
+        readInput.keyInfo.dataSize = keyMeta.size
         readInput.data8 = 5
         guard let readOutput = call(input: readInput) else { return nil }
 
         let bytes = readOutput.bytesArray
-        return Self.decode(bytes: bytes, size: Int(dataSize), type: dataType)
+        return Self.decode(bytes: bytes, size: Int(keyMeta.size), type: keyMeta.type)
     }
 
     private func call(input: SMCKeyData) -> SMCKeyData? {
@@ -289,10 +354,18 @@ private enum IOHIDThermalReader {
             getFloatValue: getFloatValue)
     }()
 
-    static func readTemperatures() -> (cpu: Double?, gpu: Double?, ssd: Double?) {
+    private enum SensorKind {
+        case cpu, gpu, ssd, other
+    }
+
+    private struct CachedClient: @unchecked Sendable {
+        let sensors: [(service: CFTypeRef, kind: SensorKind)]
+    }
+
+    private static let cachedClient: CachedClient? = {
         guard let sym = symbols,
             let client = sym.createClient(kCFAllocatorDefault)
-        else { return (nil, nil, nil) }
+        else { return nil }
 
         // PrimaryUsagePage = 0xFF00 (Apple Vendor), PrimaryUsage = 5 (Temperature)
         let matching: [String: Any] = [
@@ -300,7 +373,34 @@ private enum IOHIDThermalReader {
             "PrimaryUsage": 5,
         ]
         sym.setMatching(client, matching as CFDictionary)
-        guard let services = sym.copyServices(client) as? [CFTypeRef] else { return (nil, nil, nil) }
+        guard let services = sym.copyServices(client) as? [CFTypeRef] else { return nil }
+
+        var list: [(CFTypeRef, SensorKind)] = []
+        list.reserveCapacity(services.count)
+        for service in services {
+            let name = (sym.copyProperty(service, "Product" as CFString) as? String) ?? ""
+            let lower = name.lowercased()
+            let kind: SensorKind
+            if lower.contains("gpu") {
+                kind = .gpu
+            } else if lower.contains("nand") || lower.contains("ssd") || lower.contains("drive") {
+                kind = .ssd
+            } else if lower.contains("tdie") || lower.contains("soc") || lower.contains("cpu")
+                || lower.contains("eacc") || lower.contains("pacc")
+            {
+                kind = .cpu
+            } else {
+                kind = .other
+            }
+            list.append((service, kind))
+        }
+        return CachedClient(sensors: list)
+    }()
+
+    static func readTemperatures(
+        needCPU: Bool = true, needGPU: Bool = true, needSSD: Bool = true
+    ) -> (cpu: Double?, gpu: Double?, ssd: Double?) {
+        guard let sym = symbols, let cached = cachedClient else { return (nil, nil, nil) }
 
         let temperatureEventType: Int64 = 15
         let temperatureField: Int32 = 15 << 16
@@ -310,23 +410,24 @@ private enum IOHIDThermalReader {
         var ssdReadings: [Double] = []
         var fallbackReadings: [Double] = []
 
-        for service in services {
-            guard let event = sym.copyEvent(service, temperatureEventType, 0, 0) else { continue }
+        for item in cached.sensors {
+            switch item.kind {
+            case .cpu, .other:
+                guard needCPU else { continue }
+            case .gpu:
+                guard needGPU else { continue }
+            case .ssd:
+                guard needSSD else { continue }
+            }
+            guard let event = sym.copyEvent(item.service, temperatureEventType, 0, 0) else { continue }
             let value = sym.getFloatValue(event, temperatureField)
             guard (10.0...120.0).contains(value) else { continue }
 
-            let name = (sym.copyProperty(service, "Product" as CFString) as? String) ?? ""
-            let lower = name.lowercased()
-            if lower.contains("gpu") {
-                gpuReadings.append(value)
-            } else if lower.contains("nand") || lower.contains("ssd") || lower.contains("drive") {
-                ssdReadings.append(value)
-            } else if lower.contains("tdie") || lower.contains("soc") || lower.contains("cpu")
-                || lower.contains("eacc") || lower.contains("pacc")
-            {
-                cpuReadings.append(value)
-            } else {
-                fallbackReadings.append(value)
+            switch item.kind {
+            case .gpu: gpuReadings.append(value)
+            case .ssd: ssdReadings.append(value)
+            case .cpu: cpuReadings.append(value)
+            case .other: fallbackReadings.append(value)
             }
         }
 

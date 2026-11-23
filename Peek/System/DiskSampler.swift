@@ -5,8 +5,8 @@ import IOKit
 /// 读写速度用 IOKit `IOBlockStorageDriver` 的 Statistics 累计字节数做差。
 struct DiskSampler {
     private var previous: (time: Date, read: UInt64, write: UInt64)?
-    /// 磁盘分类估算缓存：60 秒更新一次，避免每秒扫目录。
-    private static let breakdownInterval: TimeInterval = 60
+    /// 磁盘分类估算缓存：5 分钟更新一次，避免高频遍历大目录。
+    private static let breakdownInterval: TimeInterval = 300
     private var cachedBreakdown: (time: Date, apps: UInt64, localCache: UInt64)?
 
     /// 先记一份基线，第一次采样才有速度。
@@ -15,7 +15,7 @@ struct DiskSampler {
         previous = (Date(), baseline.read, baseline.write)
     }
 
-    mutating func sample() -> DiskStats {
+    mutating func sample(includeBreakdown: Bool = true) -> DiskStats {
         let now = Date()
         let capacity = Self.capacity()
 
@@ -37,7 +37,7 @@ struct DiskSampler {
             }
         }
 
-        let breakdown = estimateBreakdown(now: now, capacity: capacity)
+        let breakdown = estimateBreakdown(now: now, capacity: capacity, allowScan: includeBreakdown)
 
         return DiskStats(
             usedBytes: capacity.used,
@@ -48,10 +48,13 @@ struct DiskSampler {
     }
 
     private mutating func estimateBreakdown(
-        now: Date, capacity: (used: UInt64, total: UInt64, free: UInt64, purgeable: UInt64)
+        now: Date,
+        capacity: (used: UInt64, total: UInt64, free: UInt64, purgeable: UInt64),
+        allowScan: Bool
     ) -> DiskBreakdown {
-        if cachedBreakdown == nil
-            || now.timeIntervalSince(cachedBreakdown!.time) >= Self.breakdownInterval
+        if allowScan,
+            cachedBreakdown == nil
+                || now.timeIntervalSince(cachedBreakdown!.time) >= Self.breakdownInterval
         {
             let home = FileManager.default.homeDirectoryForCurrentUser
             let apps =
@@ -97,6 +100,7 @@ struct DiskSampler {
     private static func boundedDirectorySize(_ url: URL, budgetSeconds: TimeInterval) -> UInt64 {
         let deadline = CFAbsoluteTimeGetCurrent() + budgetSeconds
         let keys: [URLResourceKey] = [.isRegularFileKey, .totalFileAllocatedSizeKey, .fileSizeKey]
+        let keySet = Set(keys)
         guard
             let enumerator = FileManager.default.enumerator(
                 at: url,
@@ -111,7 +115,7 @@ struct DiskSampler {
             if count & 0xFF == 0, CFAbsoluteTimeGetCurrent() >= deadline {
                 break
             }
-            guard let values = try? fileURL.resourceValues(forKeys: Set(keys)),
+            guard let values = try? fileURL.resourceValues(forKeys: keySet),
                 values.isRegularFile == true
             else { continue }
             let size = values.totalFileAllocatedSize ?? values.fileSize ?? 0
