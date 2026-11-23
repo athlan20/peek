@@ -1,0 +1,84 @@
+# Peek 工程描述。Peek.xcodeproj 由它生成，不进版本库：
+#   xcodegen generate
+# 改了这个文件、切换分支、合并或新增文件后，都要重新生成一次。
+name: Peek
+
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  Peek:
+    type: application
+    platform: macOS
+    sources:
+      - path: Peek
+        excludes:
+          - "**/README.md"
+          - "Resources/Info.plist"
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    settings:
+      base:
+        PRODUCT_NAME: Peek
+        GENERATE_INFOPLIST_FILE: YES
+        # 只在菜单栏常驻，不在 Dock 显示图标
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 yuntianyou"
+        # 不开沙盒；不做公证，所以也不开 Hardened Runtime
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        # 签名身份由 Config/*.xcconfig 里的 PEEK_SIGN_IDENTITY 决定，见 docs/signing.md
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: $(PEEK_SIGN_IDENTITY)
+        DEVELOPMENT_TEAM: ""
+        # 清空废纸篓要通过 Finder，系统授权弹窗里显示这句话
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Peek asks Finder to empty the Trash only when you choose to."
+        INFOPLIST_FILE: Peek/Resources/Info.plist
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: cc.yuntianyou.peek.dev
+          INFOPLIST_KEY_CFBundleDisplayName: Peek Dev
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: cc.yuntianyou.peek
+          INFOPLIST_KEY_CFBundleDisplayName: Peek
+          # 体积优化：按体积编译、薄 LTO、链接期死代码消除、剥离符号表
+          SWIFT_OPTIMIZATION_LEVEL: -Osize
+          LLVM_LTO: YES_THIN
+          DEAD_CODE_STRIPPING: YES
+          DEPLOYMENT_POSTPROCESSING: YES
+          STRIP_INSTALLED_PRODUCT: YES
+          STRIP_STYLE: all
+          COPY_PHASE_STRIP: YES
+    scheme:
+      testTargets:
+        - PeekTests
+  PeekTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PeekTests
+    dependencies:
+      - target: Peek
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: cc.yuntianyou.peek.tests
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "6.0"

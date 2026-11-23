@@ -1,0 +1,34 @@
+# XcodeGen 生成的工程，不进版本库（由 project.yml 生成）
+*.xcodeproj/
+
+# 本机签名覆盖，见 docs/signing.md
+Config/Signing.local.xcconfig
+
+# Xcode / SwiftPM 构建产物，每个 worktree 各自一份
+.build/
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+
+.DS_Store
+*.tmp
+*.log
+
+# 本机私有说明，软链到各个 worktree
+CLAUDE.local.md
+
+# 打包产物
+dist/
+
+# 设计稿不进开源仓库（仅本地保留）
+design/
+
+# 证书与私钥，禁止入库
+keys/
+*.p12
+*.pfx
+*.cer
+*.pem
+*.key

@@ -1,0 +1,11 @@
+// Debug：开发构建。Bundle ID 是 cc.yuntianyou.peek.dev，和正式版分开（见 project.yml）。
+//
+// 默认用临时签名（ad-hoc），没有证书也能编译运行。代价是每次构建签名都会变，
+// "完全磁盘访问"等系统授权会失效。要测这类授权时，新建 Config/Signing.local.xcconfig
+// （不进版本库），写一行：
+//   PEEK_SIGN_IDENTITY = Peek Self-Signed
+// 证书怎么来见 docs/signing.md。
+
+PEEK_SIGN_IDENTITY = -
+
+#include? "Signing.local.xcconfig"

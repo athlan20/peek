@@ -1,0 +1,6 @@
+// Release：发给用户的正式版。Bundle ID 是 cc.yuntianyou.peek（见 project.yml）。
+//
+// 必须用团队固定的自签名证书签名。系统按签名身份记住用户给的授权，
+// 换了证书，用户升级后"完全磁盘访问"等授权就会丢。证书说明见 docs/signing.md。
+
+PEEK_SIGN_IDENTITY = Peek Self-Signed
