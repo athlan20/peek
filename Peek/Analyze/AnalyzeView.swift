@@ -559,12 +559,12 @@ struct AnalyzeView: View {
     }
 
     private func crumbTitle(_ url: URL) -> String {
-        if url == AnalyzeAgentScan.rootURL { return String(localized: "AI Agents") }
+        if url == AnalyzeAgentScan.rootURL { return L10n.text("AI Agents") }
         if !url.isFileURL {
             return AnalyzeClassifier.agent(for: url, home: AnalyzeModel.homeURL)?.name ?? url.absoluteString
         }
-        if url.path == "/" { return String(localized: "Startup Disk") }
-        if url == AnalyzeModel.homeURL { return String(localized: "Home") }
+        if url.path == "/" { return L10n.text("Startup Disk") }
+        if url == AnalyzeModel.homeURL { return L10n.text("Home") }
         return url.lastPathComponent
     }
 

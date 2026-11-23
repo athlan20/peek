@@ -26,8 +26,8 @@ struct UninstallTreemapView: View {
             isLoading: false,
             emptyText: Text("Nothing to show."),
             selectedID: selectedID,
-            otherTitle: String(localized: "Other"),
-            otherSubtitle: { String(localized: "\($0) items") },
+            otherTitle: L10n.text("Other"),
+            otherSubtitle: { L10n.text("\($0) items") },
             onTap: { entry in
                 // 单击只选中,不做事;正在运行、系统 App 也能选中看看到底是哪个。
                 selectedID = entry.id
@@ -128,16 +128,19 @@ enum UninstallTreemap {
 
     /// 悬停提示:方块上放不下的都写在这里,一行一条。
     static func tooltip(for app: InstalledApp, sizeText: String) -> String {
-        var lines = [app.name, sizeText, String(localized: "Bundle ID \(app.bundleID)")]
-        if app.isAppStore { lines.append(String(localized: "From the App Store")) }
+        let locale = L10n.currentLocale()
+        var lines = [app.name, sizeText, L10n.text("Bundle ID \(app.bundleID)", locale: locale)]
+        if app.isAppStore { lines.append(L10n.text("From the App Store", locale: locale)) }
         if let lastUsed = app.lastUsed {
-            let relative = lastUsed.formatted(.relative(presentation: .named))
-            lines.append(String(localized: "Last used \(relative)"))
+            let relative = lastUsed.formatted(
+                Date.RelativeFormatStyle(presentation: .named).locale(locale)
+            )
+            lines.append(L10n.text("Last used \(relative)", locale: locale))
         } else {
-            lines.append(String(localized: "No record"))
+            lines.append(L10n.text("No record", locale: locale))
         }
         if let reason = app.blocked { lines.append(reason.explanation) }
-        lines.append(String(localized: "Only the app itself. Leftover files are shown before uninstalling."))
+        lines.append(L10n.text("Only the app itself. Leftover files are shown before uninstalling.", locale: locale))
         return lines.joined(separator: "\n")
     }
 }
@@ -146,11 +149,11 @@ extension UninstallBlockReason {
     /// 悬停提示里的原因,和列表里显示的一致。
     var explanation: String {
         switch self {
-        case .systemApp: String(localized: "System app")
-        case .peekItself: String(localized: "Peek can’t uninstall itself")
-        case .appleApp: String(localized: "Apple system app")
-        case .vendorManaged: String(localized: "Use the vendor’s own uninstaller")
-        case .running: String(localized: "Running — quit it first")
+        case .systemApp: L10n.text("System app")
+        case .peekItself: L10n.text("Peek can’t uninstall itself")
+        case .appleApp: L10n.text("Apple system app")
+        case .vendorManaged: L10n.text("Use the vendor’s own uninstaller")
+        case .running: L10n.text("Running — quit it first")
         }
     }
 }

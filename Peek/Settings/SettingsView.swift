@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Settings 独立窗口：沿用暗色 Bento 视觉风格，保留核心设置项（刷新间隔、开机启动、完全磁盘访问、在线更新）。
+/// Settings 独立窗口：沿用暗色 Bento 视觉风格，保留核心设置项（语言、刷新间隔、开机启动、完全磁盘访问、在线更新）。
 struct SettingsView: View {
     @State private var model = SettingsModel()
     private var updater: UpdateManager = .shared
+    private var languageManager: LanguageManager = .shared
 
     var body: some View {
         ScrollView {
@@ -14,7 +15,7 @@ struct SettingsView: View {
             }
             .padding(14)
         }
-        .frame(minWidth: 460, minHeight: 340)
+        .frame(minWidth: 460, minHeight: 390)
         .background(PanelPalette.panelBackground)
         .toolbarBackground(PanelPalette.panelBackground, for: .windowToolbar)
         .preferredColorScheme(.dark)
@@ -24,7 +25,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 通用设置（刷新间隔 + 开机启动）
+    // MARK: - 通用设置（语言 + 刷新间隔 + 开机启动）
 
     private var generalCard: some View {
         BentoCard(borderColor: PanelPalette.networkAccent, topGlow: PanelPalette.networkGlow) {
@@ -33,6 +34,57 @@ struct SettingsView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.4)
                     .foregroundStyle(PanelPalette.textSecondary)
+
+                // 界面语言
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Language")
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(PanelPalette.textPrimary)
+                        Text("Applies immediately without relaunch")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(PanelPalette.textMuted)
+                    }
+                    Spacer()
+                    HStack(spacing: 3) {
+                        ForEach(AppLanguage.allCases) { option in
+                            let active = languageManager.language == option
+                            Button {
+                                withAnimation(.easeOut(duration: 0.15)) {
+                                    languageManager.setLanguage(option)
+                                }
+                            } label: {
+                                Text(verbatim: option.displayTitle(locale: languageManager.locale))
+                                    .font(.system(size: 11, weight: active ? .semibold : .medium))
+                                    .foregroundStyle(active ? PanelPalette.textPrimary : PanelPalette.textSecondary)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 22)
+                                    .background {
+                                        if active {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .fill(PanelPalette.networkAccent.opacity(0.24))
+                                                .overlay {
+                                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                        .strokeBorder(PanelPalette.networkAccent.opacity(0.55), lineWidth: 1)
+                                                }
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(3)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.black.opacity(0.22))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    }
+                }
+
+                Rectangle().fill(PanelPalette.divider).frame(height: 1)
 
                 // 刷新间隔
                 HStack {
@@ -242,7 +294,7 @@ struct SettingsView: View {
                 HStack {
                     HStack(spacing: 6) {
                         Circle().fill(PanelPalette.cpuAccent).frame(width: 6, height: 6)
-                        Text(verbatim: "v\(release.version) available")
+                        Text("v\(release.version) available")
                             .font(.system(size: 12, weight: .semibold).monospacedDigit())
                             .foregroundStyle(PanelPalette.cpuAccent)
                     }
@@ -266,7 +318,7 @@ struct SettingsView: View {
         case .downloading(let release, let progress):
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(verbatim: "Downloading v\(release.version)…")
+                    Text("Downloading v\(release.version)…")
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundStyle(PanelPalette.textPrimary)
                     Spacer()

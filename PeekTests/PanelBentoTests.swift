@@ -38,7 +38,8 @@ final class PanelBentoTests: XCTestCase {
         XCTAssertEqual(PanelFormat.fanRPM(activeFan), "1200 RPM")
 
         let fanless = ThermalStats(temperatureCelsius: 40, fanRPM: nil, fanCount: 0)
-        XCTAssertEqual(PanelFormat.fanRPM(fanless), "Fanless")
+        XCTAssertEqual(PanelFormat.fanRPM(fanless, locale: Locale(identifier: "en")), "Fanless")
+        XCTAssertEqual(PanelFormat.fanRPM(fanless, locale: Locale(identifier: "zh-Hans")), "无风扇")
 
         let unknownFan = ThermalStats(temperatureCelsius: 40, fanRPM: nil, fanCount: 2)
         XCTAssertEqual(PanelFormat.fanRPM(unknownFan), "-- RPM")

@@ -125,8 +125,7 @@ struct CPUCard: View {
         }
         .help(
             Text(
-                verbatim: "Load 1m / 5m / 15m: "
-                    + stats.load.prefix(3).map { String(format: "%.2f", $0) }.joined(separator: " / ")
+                "Load 1m / 5m / 15m: \(stats.load.prefix(3).map { String(format: "%.2f", $0) }.joined(separator: " / "))"
             )
         )
     }
@@ -441,7 +440,7 @@ private struct ProcessMondrianTile: View {
     private var tooltipText: Text {
         guard let process else { return Text("") }
         return Text(
-            verbatim: "\(process.name) (PID \(process.pid))\nMemory: \(PanelFormat.bytes(process.memoryBytes))\nCPU: \(PanelFormat.cpuPercent(process.cpu))"
+            "\(process.name) (PID \(String(process.pid)))\nMemory: \(PanelFormat.bytes(process.memoryBytes))\nCPU: \(PanelFormat.cpuPercent(process.cpu))"
         )
     }
 
@@ -605,7 +604,7 @@ struct MemoryCard: View {
                 .fill(color)
                 .frame(width: 4.5, height: 4.5)
         }
-        .help(Text(verbatim: "Swap: \(PanelFormat.bytes(stats.swapUsedBytes))"))
+        .help(Text("Swap: \(PanelFormat.bytes(stats.swapUsedBytes))"))
     }
 }
 
@@ -614,7 +613,7 @@ struct MemoryCard: View {
 private enum StorageCategory: CaseIterable, Equatable {
     case system, apps, user, cache, free
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .system: "system"
         case .apps: "Apps"
@@ -624,7 +623,7 @@ private enum StorageCategory: CaseIterable, Equatable {
         }
     }
 
-    var displayName: String {
+    var displayName: LocalizedStringKey {
         switch self {
         case .system: "System"
         case .apps: "Apps"
@@ -709,7 +708,7 @@ struct StorageCard: View {
 
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Free")
-                            Text(verbatim: "of \(PanelFormat.compactStorage(stats.totalBytes))")
+                            Text("of \(PanelFormat.compactStorage(stats.totalBytes))")
                         }
                         .font(.system(size: 9.5, weight: .medium))
                         .foregroundStyle(PanelPalette.textSecondary)
@@ -801,7 +800,7 @@ struct StorageCard: View {
             Circle()
                 .fill(category.color)
                 .frame(width: 4.5, height: 4.5)
-            Text(verbatim: category.displayName)
+            Text(category.displayName)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(PanelPalette.textPrimary)
             Spacer(minLength: 3)
@@ -823,7 +822,7 @@ struct StorageCard: View {
             Circle()
                 .fill(category.color)
                 .frame(width: 3.5, height: 3.5)
-            Text(verbatim: category.title)
+            Text(category.title)
                 .font(.system(size: 7.8, weight: .regular))
                 .foregroundStyle(PanelPalette.textSecondary)
                 .fixedSize(horizontal: true, vertical: false)
@@ -985,12 +984,18 @@ private struct PortRowPill: View {
             }
         }
         .buttonStyle(.plain)
-        .help(
-            Text(
-                verbatim: "\(item.processName) · \(item.bindAddress):\(item.port) (PID \(item.pid))"
-                    + (item.isWebOpenable ? "\nClick to open http://localhost:\(item.port)" : "")
+        .help(portTooltipText)
+    }
+
+    private var portTooltipText: Text {
+        let portStr = String(item.port)
+        let pidStr = String(item.pid)
+        if item.isWebOpenable {
+            return Text(
+                "\(item.processName) · \(item.bindAddress):\(portStr) (PID \(pidStr))\nClick to open http://localhost:\(portStr)"
             )
-        )
+        }
+        return Text(verbatim: "\(item.processName) · \(item.bindAddress):\(portStr) (PID \(pidStr))")
     }
 }
 
@@ -1061,7 +1066,7 @@ struct BatteryCard: View {
                         .minimumScaleFactor(0.8)
 
                     if let health = stats.health {
-                        Text(verbatim: "Health \(PanelFormat.percent(health))")
+                        Text("Health \(PanelFormat.percent(health))")
                             .font(.system(size: 9.5, weight: .medium).monospacedDigit())
                             .foregroundStyle(PanelPalette.textSecondary)
                             .lineLimit(1)
@@ -1091,11 +1096,11 @@ struct BatteryCard: View {
                     }
                     Spacer(minLength: 2)
                     if let input = power.adapterInputWatts, power.isExternalConnected {
-                        Text(verbatim: "In \(BatteryCard.formatCompactWatts(input))")
+                        Text("In \(BatteryCard.formatCompactWatts(input))")
                             .font(.system(size: 8.8, weight: .medium).monospacedDigit())
                             .foregroundStyle(PanelPalette.segTeal)
                     } else if let bat = power.batteryWatts, bat < -0.1 {
-                        Text(verbatim: "Bat \(BatteryCard.formatCompactWatts(abs(bat)))")
+                        Text("Bat \(BatteryCard.formatCompactWatts(abs(bat)))")
                             .font(.system(size: 8.8, weight: .medium).monospacedDigit())
                             .foregroundStyle(PanelPalette.textSecondary)
                     }
@@ -1120,13 +1125,13 @@ struct BatteryCard: View {
 
     private func restingFooter(stats: BatteryStats, color: Color) -> some View {
         let statusLabel: String = if stats.isCharging {
-            String(localized: "Charging")
+            L10n.text("Charging")
         } else if stats.isPluggedIn {
-            String(localized: "Plugged")
+            L10n.text("Plugged")
         } else if let cycles = stats.cycleCount {
-            "\(cycles) cyc"
+            L10n.text("\(cycles) cyc")
         } else {
-            String(localized: "Battery")
+            L10n.text("Battery")
         }
 
         return HStack(spacing: 4) {
@@ -1145,7 +1150,7 @@ struct BatteryCard: View {
                 }
                 .lineLimit(1)
             } else if stats.isCharging || stats.isPluggedIn, let cycles = stats.cycleCount {
-                Text(verbatim: "\(cycles) cyc")
+                Text("\(cycles) cyc")
                     .lineLimit(1)
             }
         }
@@ -1156,7 +1161,7 @@ struct BatteryCard: View {
     private func hoveredCellFooter(cell: Int, stats: BatteryStats, color: Color) -> some View {
         let low = cell * 25
         let high = (cell + 1) * 25
-        let source = stats.isPluggedIn || stats.isCharging ? "AC" : "BAT"
+        let source = stats.isPluggedIn || stats.isCharging ? L10n.text("AC") : L10n.text("BAT")
         return HStack(spacing: 3) {
             Circle().fill(color).frame(width: 4, height: 4)
             Text(verbatim: "\(low)–\(high)%")
@@ -1164,7 +1169,7 @@ struct BatteryCard: View {
                 .foregroundStyle(PanelPalette.textPrimary)
             Spacer(minLength: 2)
             if let cycles = stats.cycleCount {
-                Text(verbatim: "\(source) · \(cycles) cyc")
+                Text("\(source) · \(cycles) cyc")
                     .font(.system(size: 8.5, weight: .medium).monospacedDigit())
                     .foregroundStyle(PanelPalette.textSecondary)
             } else {
@@ -1324,7 +1329,7 @@ struct CompactThermalCard: View {
         Self.tempColor(hottestCelsius)
     }
 
-    private var stateLabel: String {
+    private var stateLabel: LocalizedStringKey {
         guard let t = hottestCelsius else { return "--" }
         if t >= MetricThreshold.thermalCelsius { return "HOT" }
         if t >= 62 { return "WARM" }
@@ -1361,7 +1366,7 @@ struct CompactThermalCard: View {
                         Circle()
                             .fill(isAlert ? PanelPalette.alertAccent : stateColor)
                             .frame(width: 4.5, height: 4.5)
-                        Text(verbatim: stateLabel)
+                        Text(stateLabel)
                             .font(.system(size: 8.5, weight: .semibold))
                             .foregroundStyle(stateColor)
                     }
@@ -1389,7 +1394,7 @@ struct CompactThermalCard: View {
                         .lineLimit(1)
                     Spacer(minLength: 2)
                     if let peak = peakTemp {
-                        Text(verbatim: "Peak \(PanelFormat.temperature(peak))")
+                        Text("Peak \(PanelFormat.temperature(peak))")
                             .font(.system(size: 8.8, weight: .medium).monospacedDigit())
                             .foregroundStyle(PanelPalette.textMuted)
                             .lineLimit(1)
@@ -1506,9 +1511,15 @@ struct NetworkPortsCard: View {
                         Circle()
                             .fill(ports.isEmpty ? PanelPalette.textMuted : PanelPalette.segTeal)
                             .frame(width: 4, height: 4)
-                        Text(verbatim: ports.isEmpty ? "IDLE" : "\(ports.count) PORTS")
-                            .font(.system(size: 8.5, weight: .semibold).monospacedDigit())
-                            .foregroundStyle(ports.isEmpty ? PanelPalette.textMuted : PanelPalette.segTeal)
+                        Group {
+                            if ports.isEmpty {
+                                Text("IDLE")
+                            } else {
+                                Text("\(ports.count) PORTS")
+                            }
+                        }
+                        .font(.system(size: 8.5, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(ports.isEmpty ? PanelPalette.textMuted : PanelPalette.segTeal)
                     }
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1.5)
@@ -1608,7 +1619,7 @@ struct NetworkPortsCard: View {
                 .lineLimit(1)
             Spacer(minLength: 2)
             if item.isWebOpenable {
-                Text(verbatim: "Open ↗")
+                Text("Open ↗")
                     .font(.system(size: 8.5, weight: .semibold))
                     .foregroundStyle(color)
             } else {
@@ -1636,10 +1647,10 @@ struct NetworkPortsCard: View {
         .lineLimit(1)
     }
 
-    private func portLegendDot(_ color: Color, _ label: String) -> some View {
+    private func portLegendDot(_ color: Color, _ label: LocalizedStringKey) -> some View {
         HStack(spacing: 2) {
             Circle().fill(color).frame(width: 3.5, height: 3.5)
-            Text(verbatim: label)
+            Text(label)
                 .font(.system(size: 7.8, weight: .regular))
                 .foregroundStyle(PanelPalette.textSecondary)
         }

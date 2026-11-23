@@ -43,13 +43,15 @@ enum PanelFormat {
         return "\(Int(celsius.rounded()))°C"
     }
 
-    /// 风扇转速显示，如 "1200 RPM"；无风扇机型返回 "Fanless"。
-    static func fanRPM(_ thermal: ThermalStats) -> String {
+    /// 风扇转速显示，如 "1200 RPM"；无风扇机型返回 "Fanless" / "无风扇"。
+    static func fanRPM(
+        _ thermal: ThermalStats, locale: Locale? = nil, bundle: Bundle = .main
+    ) -> String {
         if let rpm = thermal.fanRPM {
             return "\(rpm) RPM"
         }
         if thermal.fanCount == 0 {
-            return String(localized: "Fanless")
+            return L10n.text("Fanless", locale: locale, bundle: bundle)
         }
         return "-- RPM"
     }
@@ -118,7 +120,7 @@ enum PanelFormat {
     /// 本地化的运行时长，如 "Up 13h"、"已运行 13 小时"。
     /// `locale`、`bundle` 只给测试用，正常调用走当前语言。
     static func uptimeText(
-        _ seconds: TimeInterval, locale: Locale = .current, bundle: Bundle = .main
+        _ seconds: TimeInterval, locale: Locale? = nil, bundle: Bundle = .main
     ) -> String {
         let uptime = uptime(seconds)
         let format: String.LocalizationValue = switch uptime.unit {
@@ -126,7 +128,7 @@ enum PanelFormat {
         case .hours: "Up \(uptime.amount)h"
         case .days: "Up \(uptime.amount)d"
         }
-        return String(localized: format, bundle: bundle, locale: locale)
+        return L10n.text(format, locale: locale, bundle: bundle)
     }
 
     // MARK: - 电池
@@ -141,26 +143,26 @@ enum PanelFormat {
     /// 电池状态文案。`BatteryStats` 只说得了“是否正在充电”，分不出“满电接着电源”，所以只有两种状态。
     /// `locale`、`bundle` 只给测试用，正常调用走当前语言。
     static func batteryStatusText(
-        isCharging: Bool, locale: Locale = .current, bundle: Bundle = .main
+        isCharging: Bool, locale: Locale? = nil, bundle: Bundle = .main
     ) -> String {
         if isCharging {
-            return String(localized: "Charging", bundle: bundle, locale: locale)
+            return L10n.text("Charging", locale: locale, bundle: bundle)
         }
-        return String(localized: "On battery", bundle: bundle, locale: locale)
+        return L10n.text("On battery", locale: locale, bundle: bundle)
     }
 
     /// 电池行的补充说明，如 “Charging · Health 100% · 312 cycles”。读不到的段省略。
     static func batteryDetailText(
-        _ battery: BatteryStats, locale: Locale = .current, bundle: Bundle = .main
+        _ battery: BatteryStats, locale: Locale? = nil, bundle: Bundle = .main
     ) -> String {
         var parts = [
             batteryStatusText(isCharging: battery.isCharging, locale: locale, bundle: bundle)
         ]
         if let health = battery.health {
-            parts.append(String(localized: "Health \(percent(health))", bundle: bundle, locale: locale))
+            parts.append(L10n.text("Health \(percent(health))", locale: locale, bundle: bundle))
         }
         if let cycles = battery.cycleCount {
-            parts.append(String(localized: "\(cycles) cycles", bundle: bundle, locale: locale))
+            parts.append(L10n.text("\(cycles) cycles", locale: locale, bundle: bundle))
         }
         return parts.joined(separator: " · ")
     }

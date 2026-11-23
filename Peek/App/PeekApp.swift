@@ -4,12 +4,15 @@ import SwiftUI
 @main
 struct PeekApp: App {
     @Environment(\.openWindow) private var openWindow
+    private var languageManager: LanguageManager = .shared
 
     var body: some Scene {
         MenuBarExtra {
             PanelView()
+                .environment(\.locale, languageManager.locale)
         } label: {
             MenuBarLabel()
+                .environment(\.locale, languageManager.locale)
                 .task {
                     StatusItemMenu.shared.install { destination in
                         NSApp.activate(ignoringOtherApps: true)
@@ -22,6 +25,7 @@ struct PeekApp: App {
         // 独立窗口。目前内容是占位,各功能做好后替换(见 `DestinationWindow`)。
         WindowGroup("Peek", for: PanelDestination.self) { $destination in
             DestinationWindow(destination: destination ?? .home)
+                .environment(\.locale, languageManager.locale)
         } defaultValue: {
             .home
         }

@@ -85,4 +85,24 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.refreshInterval, 1)
         XCTAssertEqual(defaults.integer(forKey: SettingsStore.refreshIntervalKey), 1)
     }
+
+    // MARK: - 界面语言
+
+    func testAppLanguageDefaultsToSystem() {
+        XCTAssertEqual(store.appLanguage, .system)
+        XCTAssertEqual(SettingsStore.appLanguage(from: defaults), .system)
+    }
+
+    func testAppLanguagePersistsValidValues() {
+        for language in AppLanguage.allCases {
+            store.appLanguage = language
+            XCTAssertEqual(defaults.string(forKey: SettingsStore.appLanguageKey), language.rawValue)
+            XCTAssertEqual(store.appLanguage, language)
+        }
+    }
+
+    func testAppLanguageFallsBackToSystemForInvalidStoredValue() {
+        defaults.set("fr-FR", forKey: SettingsStore.appLanguageKey)
+        XCTAssertEqual(store.appLanguage, .system)
+    }
 }

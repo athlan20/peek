@@ -1,0 +1,22 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSAppleEventsUsageDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peek asks Finder to empty the Trash only when you choose to."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在你主动选择清空废纸篓时，Peek 才会请求访达执行清空操作。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

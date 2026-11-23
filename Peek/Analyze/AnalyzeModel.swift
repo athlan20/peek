@@ -291,7 +291,7 @@ final class AnalyzeModel {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
-        panel.prompt = String(localized: "Choose")
+        panel.prompt = L10n.text("Choose")
         panel.directoryURL = currentURL?.isFileURL == true ? currentURL : Self.homeURL
         guard panel.runModal() == .OK, let url = panel.url else { return }
         open(url)
@@ -661,7 +661,7 @@ final class AnalyzeModel {
             if selection == item.url { selection = nil }
         }
         if failed {
-            errorMessage = String(localized: "Couldn’t move the item to the Trash.")
+            errorMessage = L10n.text("Couldn’t move the item to the Trash.")
         }
     }
 

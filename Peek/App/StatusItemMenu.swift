@@ -28,10 +28,10 @@ final class StatusItemMenu {
 
     private func showMenu(event: NSEvent, view: NSView) {
         let menu = NSMenu()
-        menu.addItem(item(String(localized: "Open Peek"), #selector(openHome)))
-        menu.addItem(item(String(localized: "Settings…"), #selector(openSettings), key: ","))
+        menu.addItem(item(L10n.text("Open Peek"), #selector(openHome)))
+        menu.addItem(item(L10n.text("Settings…"), #selector(openSettings), key: ","))
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "Quit Peek"), #selector(quit), key: "q"))
+        menu.addItem(item(L10n.text("Quit Peek"), #selector(quit), key: "q"))
         NSMenu.popUpContextMenu(menu, with: event, for: view)
     }
 

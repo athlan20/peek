@@ -155,7 +155,7 @@ final class UpdateManager {
         // 若当前在只读卷（如挂载的 .dmg）或无写权限，引导到 GitHub Release 页手动下载。
         guard FileManager.default.isWritableFile(atPath: parentDir.path) else {
             NSWorkspace.shared.open(release.releasePageURL)
-            state = .failed(String(localized: "Install Peek in /Applications to enable one-click updates."))
+            state = .failed(L10n.text("Install Peek in /Applications to enable one-click updates."))
             return
         }
 
@@ -304,7 +304,7 @@ final class UpdateManager {
         arch: String
     ) async -> CheckOutcome {
         guard let url = URL(string: "https://api.github.com/repos/\(repoSlug)/releases/latest") else {
-            return .error("Invalid release URL")
+            return .error(L10n.text("Invalid release URL"))
         }
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -314,14 +314,14 @@ final class UpdateManager {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse else {
-                return .error("Invalid server response")
+                return .error(L10n.text("Invalid server response"))
             }
             if http.statusCode == 404 {
                 // 尚无已发布的 Release，按最新处理。
                 return .upToDate
             }
             guard (200..<300).contains(http.statusCode) else {
-                return .error("GitHub API returned HTTP \(http.statusCode)")
+                return .error(L10n.text("GitHub API returned HTTP \(http.statusCode)"))
             }
             let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
             if let release = evaluateRelease(payload, currentVersion: currentVersion, arch: arch) {
@@ -522,13 +522,13 @@ private enum UpdateError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .downloadFailed: return "Failed to download update package."
-        case .checksumMismatch: return "SHA-256 checksum verification failed."
-        case .extractFailed: return "Failed to extract update archive."
-        case .appNotFoundInArchive: return "Update archive does not contain Peek.app."
-        case .invalidSignature: return "Update signature verification failed."
-        case .bundleIDMismatch: return "Update Bundle ID does not match Peek."
-        case .certificateMismatch: return "Update certificate does not match the current app."
+        case .downloadFailed: return L10n.text("Failed to download update package.")
+        case .checksumMismatch: return L10n.text("SHA-256 checksum verification failed.")
+        case .extractFailed: return L10n.text("Failed to extract update archive.")
+        case .appNotFoundInArchive: return L10n.text("Update archive does not contain Peek.app.")
+        case .invalidSignature: return L10n.text("Update signature verification failed.")
+        case .bundleIDMismatch: return L10n.text("Update Bundle ID does not match Peek.")
+        case .certificateMismatch: return L10n.text("Update certificate does not match the current app.")
         }
     }
 }

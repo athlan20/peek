@@ -25,8 +25,8 @@ struct AnalyzeTreemapView: View {
             isLoading: isScanning,
             emptyText: emptyText,
             selectedID: selection?.absoluteString,
-            otherTitle: String(localized: "Other"),
-            otherSubtitle: { String(localized: "\($0) items") },
+            otherTitle: L10n.text("Other"),
+            otherSubtitle: { L10n.text("\($0) items") },
             onTap: { entry in
                 // 单击只选中,不做事。
                 selection = URL(string: entry.id)

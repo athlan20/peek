@@ -6,12 +6,14 @@ import Foundation
 /// - `clean.whitelist`：清理白名单（绝对路径），`CleanModel` 扫描时读它。
 /// - `clean.projectRoots`：项目构建产物的扫描目录（绝对路径），留空用默认目录（R7）。
 /// - `refreshIntervalSeconds`：面板打开时的采样间隔，`SystemMonitor` 读它。
+/// - `app.language`：界面语言（`system` / `en` / `zh-Hans`），默认跟随系统。
 ///
 /// `UserDefaults` 可注入，测试里用临时 suite。
 struct SettingsStore {
     static let whitelistKey = "clean.whitelist"
     static let projectRootsKey = "clean.projectRoots"
     static let refreshIntervalKey = "refreshIntervalSeconds"
+    static let appLanguageKey = "app.language"
 
     /// 面板打开时可选的采样间隔（秒）。第一项是默认值。
     static let refreshIntervalOptions = [1, 2, 5]
@@ -88,6 +90,23 @@ struct SettingsStore {
         nonmutating set {
             let value = Self.refreshIntervalOptions.contains(newValue) ? newValue : Self.refreshIntervalOptions[0]
             defaults.set(value, forKey: Self.refreshIntervalKey)
+        }
+    }
+
+    // MARK: - 界面语言
+
+    /// 没有或不是有效语言值时回退到跟随系统。
+    nonisolated static func appLanguage(from defaults: UserDefaults) -> AppLanguage {
+        guard let raw = defaults.string(forKey: appLanguageKey),
+              let language = AppLanguage(rawValue: raw)
+        else { return .system }
+        return language
+    }
+
+    var appLanguage: AppLanguage {
+        get { Self.appLanguage(from: defaults) }
+        nonmutating set {
+            defaults.set(newValue.rawValue, forKey: Self.appLanguageKey)
         }
     }
 }

@@ -104,7 +104,7 @@ final class SettingsModel {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
         panel.canCreateDirectories = false
-        panel.prompt = String(localized: "Choose")
+        panel.prompt = L10n.text("Choose")
         return panel.runModal() == .OK ? panel.urls : []
     }
 }

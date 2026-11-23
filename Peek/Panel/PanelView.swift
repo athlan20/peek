@@ -132,7 +132,7 @@ struct PanelView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help(Text(verbatim: "Update available: v\(release.version)"))
+                .help(Text("Update available: v\(release.version)"))
             }
 
             PanelToolbarIconButton(
