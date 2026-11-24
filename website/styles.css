@@ -43,9 +43,9 @@
   --radius-lg: 22px;
   --max-width: 1140px;
 
-  --font-display: "Space Grotesk", "MiSans", "HarmonyOS Sans SC", -apple-system, BlinkMacSystemFont,
+  --font-display: "Space Grotesk", "LXGW WenKai", -apple-system, BlinkMacSystemFont,
     "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
-  --font-sans: "Plus Jakarta Sans", "MiSans", "HarmonyOS Sans SC", -apple-system, BlinkMacSystemFont,
+  --font-sans: "Plus Jakarta Sans", "LXGW WenKai", -apple-system, BlinkMacSystemFont,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
 
