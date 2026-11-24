@@ -49,6 +49,11 @@ final class LocalizationTests: XCTestCase {
             ("No active dev ports", "No active dev ports", "暂无活跃开发端口"),
             ("HOT", "HOT", "过热"),
             ("COOL", "COOL", "凉爽"),
+            ("Full Disk Access Recommended", "Full Disk Access Recommended", "建议授予完全磁盘访问权限"),
+            ("Continue Without Access", "Continue Without Access", "暂不授权，继续扫描"),
+            ("Menu bar", "Menu bar", "菜单栏显示"),
+            ("settings.menubar.memory", "Mem", "内存"),
+            ("settings.menubar.network", "Net", "网络"),
         ]
 
         for (key, expectedEn, expectedZh) in samples {

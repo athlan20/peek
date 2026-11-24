@@ -6,6 +6,7 @@ struct SettingsView: View {
     private var updater: UpdateManager = .shared
     private var languageManager: LanguageManager = .shared
     private var appearanceManager: AppearanceManager = .shared
+    private var menuBarMetricManager: MenuBarMetricManager = .shared
 
     var body: some View {
         ScrollView {
@@ -109,6 +110,57 @@ struct SettingsView: View {
                                     .font(.system(size: 11, weight: active ? .semibold : .medium))
                                     .foregroundStyle(active ? PanelPalette.textPrimary : PanelPalette.textSecondary)
                                     .padding(.horizontal, 10)
+                                    .frame(height: 22)
+                                    .background {
+                                        if active {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .fill(PanelPalette.networkAccent.opacity(0.24))
+                                                .overlay {
+                                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                        .strokeBorder(PanelPalette.networkAccent.opacity(0.55), lineWidth: 1)
+                                                }
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(3)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(PanelPalette.segmentedTrack)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(PanelPalette.pillBorder, lineWidth: 1)
+                    }
+                }
+
+                Rectangle().fill(PanelPalette.divider).frame(height: 1)
+
+                // 菜单栏显示指标
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Menu bar")
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(PanelPalette.textPrimary)
+                        Text("Metric shown beside the icon")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(PanelPalette.textMuted)
+                    }
+                    Spacer()
+                    HStack(spacing: 3) {
+                        ForEach(MenuBarMetric.allCases) { option in
+                            let active = menuBarMetricManager.metric == option
+                            Button {
+                                withAnimation(.easeOut(duration: 0.15)) {
+                                    menuBarMetricManager.setMetric(option)
+                                }
+                            } label: {
+                                Text(option.titleKey)
+                                    .font(.system(size: 11, weight: active ? .semibold : .medium))
+                                    .foregroundStyle(active ? PanelPalette.textPrimary : PanelPalette.textSecondary)
+                                    .padding(.horizontal, 8)
                                     .frame(height: 22)
                                     .background {
                                         if active {

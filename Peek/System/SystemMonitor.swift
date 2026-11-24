@@ -1,21 +1,25 @@
 import Foundation
 import Observation
 
-/// 采样频率。面板打开时每秒一次；关闭后只为菜单栏分数低频采样。
+/// 采样频率。面板打开时按设置间隔采样；关闭后若菜单栏显示实时指标则沿用设置间隔，仅图标时 30 秒低频采样。
 enum SamplingMode: Sendable {
     case panelOpen
     case background
 
-    /// 两次采样的间隔。面板打开时用设置里的间隔（`refreshIntervalSeconds`），后台固定 30 秒。
+    /// 两次采样的间隔。
     fileprivate var interval: Duration {
         switch self {
-        case .panelOpen: .seconds(SettingsStore.refreshInterval(from: .standard))
-        case .background: .seconds(30)
+        case .panelOpen:
+            .seconds(SettingsStore.refreshInterval(from: .standard))
+        case .background:
+            SettingsStore.menuBarMetric(from: .standard) == .none
+                ? .seconds(30)
+                : .seconds(SettingsStore.refreshInterval(from: .standard))
         }
     }
 }
 
-/// 系统状态的唯一数据源。面板和菜单栏只读 `snapshot` 和 `health`。
+/// 系统状态的唯一数据源。面板和菜单栏只读 `snapshot`。
 ///
 /// 采样全部在 `SamplingEngine`（actor，后台线程）里做，这里只负责定时和把结果搬回主线程。
 @MainActor
@@ -24,7 +28,6 @@ final class SystemMonitor {
     static let shared = SystemMonitor()
 
     private(set) var snapshot: SystemSnapshot = .sample
-    private(set) var health: HealthScore = HealthScore.compute(snapshot: .sample, cpuSustained: 0.23)
 
     private var cpuSamples = SampleHistory()
     private var memorySamples = SampleHistory()
@@ -66,9 +69,8 @@ final class SystemMonitor {
         start()
     }
 
-    /// 刷新间隔改了之后重启定时器，新的间隔立刻生效。只在面板打开时才有意义。
+    /// 刷新间隔或菜单栏指标改了之后重启定时器，新的间隔立刻生效。
     func restartTimer() {
-        guard mode == .panelOpen else { return }
         start()
     }
 
@@ -78,15 +80,13 @@ final class SystemMonitor {
             guard let self else { return }
             let result = await self.engine.collect(includeTopProcesses: self.mode == .panelOpen)
             self.snapshot = result.snapshot
-            self.health = HealthScore.compute(
-                snapshot: result.snapshot, cpuSustained: result.cpuSustained)
             if self.mode == .panelOpen {
                 self.recordHistory(for: result.snapshot)
             }
         }
     }
 
-    /// 默认 `.background`，初始化后立刻采一次，菜单栏马上有分数。
+    /// 默认 `.background`，初始化后立刻采一次，菜单栏马上有数据。
     private init() {
         start()
     }
@@ -110,9 +110,7 @@ final class SystemMonitor {
             if Task.isCancelled { return }
 
             snapshot = result.snapshot
-            health = HealthScore.compute(
-                snapshot: result.snapshot, cpuSustained: result.cpuSustained)
-            // 只有面板打开时才记历史：后台 30 秒一次会把时间轴拉乱。
+            // 只有面板打开时才记历史：后台采样会把时间轴拉乱。
             if mode == .panelOpen {
                 recordHistory(for: result.snapshot)
             }
@@ -163,6 +161,5 @@ final class SystemMonitor {
     /// 下一次采样会把它覆盖掉，所以只适合瞬时渲染。
     func seedSnapshot(_ snapshot: SystemSnapshot) {
         self.snapshot = snapshot
-        health = HealthScore.compute(snapshot: snapshot, cpuSustained: snapshot.cpu.total)
     }
 }

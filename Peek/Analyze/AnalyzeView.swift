@@ -31,11 +31,17 @@ struct AnalyzeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            headerBar
-            controlStrip
-            contentCard
-            footerBar
+        Group {
+            if model.needsFullDiskAccessPrompt {
+                fullDiskAccessGateView
+            } else {
+                VStack(spacing: 10) {
+                    headerBar
+                    controlStrip
+                    contentCard
+                    footerBar
+                }
+            }
         }
         .padding(14)
         .frame(minWidth: 660, minHeight: 480)
@@ -44,6 +50,9 @@ struct AnalyzeView: View {
         .onAppear { model.start() }
         // 关窗口就停掉后台扫描。
         .onDisappear { model.stop() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            model.recheckFullDiskAccess()
+        }
         .alert(
             Text("Delete “\(model.pendingTrash?.name ?? "")”?"),
             isPresented: Binding(
@@ -66,6 +75,106 @@ struct AnalyzeView: View {
         ) {
             Button("OK", role: .cancel) { model.errorMessage = nil }
         }
+    }
+
+    // MARK: - 首次完全磁盘访问引导
+
+    private var fullDiskAccessGateView: some View {
+        let accent = PanelPalette.thermalAccent
+        let glow = PanelPalette.thermalGlow
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let isLight = colorScheme == .light
+
+        return VStack {
+            Spacer(minLength: 0)
+
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(0.14))
+                        .frame(width: 52, height: 52)
+                    Circle()
+                        .strokeBorder(accent.opacity(0.4), lineWidth: 1)
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(accent)
+                }
+
+                VStack(spacing: 8) {
+                    Text("Full Disk Access Recommended")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PanelPalette.textPrimary)
+
+                    Text("Grant Full Disk Access once so Peek can scan your disk accurately without repeated macOS permission prompts for Desktop, Documents, Downloads, and Photos.")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(PanelPalette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("If Peek isn’t listed, click “+” in System Settings to add it, then quit and reopen Peek.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PanelPalette.textMuted)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                }
+
+                HStack(spacing: 10) {
+                    AnalyzeFooterButton(
+                        title: Text("Open System Settings"),
+                        systemName: "lock.open",
+                        tint: accent,
+                        isDestructive: false,
+                        isDisabled: false
+                    ) {
+                        model.openFullDiskAccessSettings()
+                    }
+
+                    Button {
+                        model.continueWithoutFullDiskAccess()
+                    } label: {
+                        Text("Continue Without Access")
+                            .font(.system(size: 11.5, weight: .medium))
+                            .foregroundStyle(PanelPalette.textSecondary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 28)
+                            .background {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(PanelPalette.controlBackground)
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .strokeBorder(PanelPalette.controlBorder, lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 26)
+            .frame(maxWidth: 460)
+            .background {
+                shape
+                    .fill(PanelPalette.cardBackground)
+                    .overlay {
+                        LinearGradient(
+                            colors: [glow.opacity(isLight ? 0.1 : 0.28), Color.clear],
+                            startPoint: .top,
+                            endPoint: .center
+                        )
+                        .clipShape(shape)
+                    }
+                    .overlay {
+                        shape.strokeBorder(accent.opacity(0.4), lineWidth: 1)
+                    }
+            }
+            .shadow(color: PanelPalette.cardShadow, radius: isLight ? 4 : 0, x: 0, y: isLight ? 2 : 0)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - 顶部导航与路径

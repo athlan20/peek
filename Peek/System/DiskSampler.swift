@@ -7,7 +7,7 @@ struct DiskSampler {
     private var previous: (time: Date, read: UInt64, write: UInt64)?
     /// 磁盘分类估算缓存：5 分钟更新一次，避免高频遍历大目录。
     private static let breakdownInterval: TimeInterval = 300
-    private var cachedBreakdown: (time: Date, apps: UInt64, localCache: UInt64)?
+    private var cachedBreakdown: (time: Date, apps: UInt64)?
 
     /// 先记一份基线，第一次采样才有速度。
     mutating func prime() {
@@ -62,9 +62,9 @@ struct DiskSampler {
                     URL(fileURLWithPath: "/Applications"), budgetSeconds: 0.10)
                 + Self.boundedDirectorySize(
                     home.appendingPathComponent("Applications"), budgetSeconds: 0.02)
-            let localCache = Self.boundedDirectorySize(
-                home.appendingPathComponent("Library/Caches"), budgetSeconds: 0.05)
-            cachedBreakdown = (now, apps, localCache)
+            // 不遍历 ~/Library/Caches：里面含 Apple Music 等受 TCC 保护的缓存目录，
+            // 未授予完全磁盘访问时首次打开面板会触发无关的系统授权弹窗；缓存直接用 APFS purgeable 估算。
+            cachedBreakdown = (now, apps)
         }
 
         let used = capacity.used
@@ -73,7 +73,7 @@ struct DiskSampler {
                 systemBytes: 0, appsBytes: 0, userBytes: 0, cacheBytes: 0, freeBytes: capacity.free)
         }
 
-        let rawCache = capacity.purgeable + (cachedBreakdown?.localCache ?? 0)
+        let rawCache = capacity.purgeable
         // 缓存占比上限 40%，避免 APFS purgeable 口径重叠把其余分类挤成 0。
         let cache = min(rawCache, UInt64(Double(used) * 0.40))
         let afterCache = used > cache ? used - cache : 0

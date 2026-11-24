@@ -1313,6 +1313,22 @@
         }
       }
     },
+    "Continue Without Access": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue Without Access"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不授权，继续扫描"
+          }
+        }
+      }
+    },
     "Copied": {
       "localizations": {
         "en": {
@@ -1889,6 +1905,22 @@
         }
       }
     },
+    "Full Disk Access Recommended": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Disk Access Recommended"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议授予完全磁盘访问权限"
+          }
+        }
+      }
+    },
     "GENERAL": {
       "localizations": {
         "en": {
@@ -1953,6 +1985,22 @@
         }
       }
     },
+    "Grant Full Disk Access once so Peek can scan your disk accurately without repeated macOS permission prompts for Desktop, Documents, Downloads, and Photos.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grant Full Disk Access once so Peek can scan your disk accurately without repeated macOS permission prompts for Desktop, Documents, Downloads, and Photos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次性授予完全磁盘访问权限后，Peek 可准确扫描磁盘空间，避免反复弹出桌面、文稿、下载、照片等系统授权框。"
+          }
+        }
+      }
+    },
     "HOT": {
       "localizations": {
         "en": {
@@ -2013,6 +2061,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "空闲"
+          }
+        }
+      }
+    },
+    "If Peek isn’t listed, click “+” in System Settings to add it, then quit and reopen Peek.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If Peek isn’t listed, click “+” in System Settings to add it, then quit and reopen Peek."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果列表中没有 Peek，请点击系统设置左下角的“+”手动添加，然后退出并重新打开 Peek。"
           }
         }
       }
@@ -2669,6 +2733,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "内存 %@"
+          }
+        }
+      }
+    },
+    "Menu bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu bar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏显示"
+          }
+        }
+      }
+    },
+    "Metric shown beside the icon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metric shown beside the icon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图标右侧显示的实时指标"
           }
         }
       }
@@ -3469,6 +3565,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Peek"
+          }
+        }
+      }
+    },
+    "Peek %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peek %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peek %@"
           }
         }
       }
@@ -5501,6 +5613,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "settings.menubar.cpu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU"
+          }
+        }
+      }
+    },
+    "settings.menubar.memory": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mem"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内存"
+          }
+        }
+      }
+    },
+    "settings.menubar.network": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Net"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络"
+          }
+        }
+      }
+    },
+    "settings.menubar.none": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "settings.menubar.temperature": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "温度"
           }
         }
       }

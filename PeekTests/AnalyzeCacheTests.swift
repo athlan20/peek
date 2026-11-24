@@ -144,4 +144,44 @@ final class AnalyzeCacheTests: XCTestCase {
         checkpoint.forget(item("/u/b", 100))
         XCTAssertNil(checkpoint.finished.first { $0.name == "b" })
     }
+
+    @MainActor
+    func testFullDiskAccessGateBlocksAutoScanUntilAuthorizedOrSkipped() {
+        final class Flag: @unchecked Sendable { var granted = false }
+        let flag = Flag()
+
+        let model = AnalyzeModel(cacheURL: file, probeFullDiskAccess: { flag.granted })
+        model.start()
+        defer { model.stop() }
+
+        XCTAssertTrue(model.needsFullDiskAccessPrompt)
+        XCTAssertTrue(model.stack.isEmpty)
+        XCTAssertFalse(model.isScanning)
+        XCTAssertFalse(model.isScanningDownloads)
+
+        // 未授权时切到 Agent 页也不应偷跑扫描。
+        model.tab = .agents
+        XCTAssertTrue(model.stack.isEmpty)
+        model.tab = .items
+
+        // 模拟用户到系统设置授权后切回前台。
+        flag.granted = true
+        model.recheckFullDiskAccess()
+        XCTAssertFalse(model.needsFullDiskAccessPrompt)
+        XCTAssertFalse(model.stack.isEmpty)
+    }
+
+    @MainActor
+    func testContinueWithoutFullDiskAccessStartsScan() {
+        let model = AnalyzeModel(cacheURL: file, probeFullDiskAccess: { false })
+        model.start()
+        defer { model.stop() }
+
+        XCTAssertTrue(model.needsFullDiskAccessPrompt)
+        XCTAssertTrue(model.stack.isEmpty)
+
+        model.continueWithoutFullDiskAccess()
+        XCTAssertFalse(model.needsFullDiskAccessPrompt)
+        XCTAssertFalse(model.stack.isEmpty)
+    }
 }

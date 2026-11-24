@@ -67,9 +67,26 @@ final class AnalyzeModel {
     @ObservationIgnored private var cache: AnalyzeCache
     @ObservationIgnored private let cacheURL: URL
     @ObservationIgnored private var saveTask: Task<Void, Never>?
+    @ObservationIgnored private let probeFullDiskAccess: @Sendable () -> Bool
 
-    init(cacheURL: URL = AnalyzeCache.defaultFileURL) {
+    /// 是否已授予完全磁盘访问权限；首次打开 Analyze 时静默探测。
+    private(set) var hasFullDiskAccess = true
+    /// 用户主动选择“暂不授权，继续扫描”后放行（当前窗口会话内有效）。
+    private var skippedFullDiskAccessGate = false
+
+    /// 尚未获得完全磁盘访问权限且用户未选择跳过：先引导一次总授权，避免扫描时连环弹多个目录权限框。
+    var needsFullDiskAccessPrompt: Bool {
+        !hasFullDiskAccess && !skippedFullDiskAccessGate
+    }
+
+    init(
+        cacheURL: URL = AnalyzeCache.defaultFileURL,
+        probeFullDiskAccess: @escaping @Sendable () -> Bool = {
+            CleanFS.probeFullDiskAccess(home: FileManager.default.homeDirectoryForCurrentUser)
+        }
+    ) {
         self.cacheURL = cacheURL
+        self.probeFullDiskAccess = probeFullDiskAccess
         cache = AnalyzeCache.load(from: cacheURL)
     }
 
@@ -85,6 +102,7 @@ final class AnalyzeModel {
     var tab: Tab = .items {
         didSet {
             selection = nil
+            guard !needsFullDiskAccessPrompt else { return }
             if tab == .agents {
                 if agentsStack.isEmpty { openAgents() } else { resumeIfNeeded(.agents) }
             }
@@ -146,9 +164,39 @@ final class AnalyzeModel {
 
     // MARK: - 生命周期与导航
 
-    /// 窗口出现时调用。默认看主目录，同时看一次旧下载。上次没扫完的（包括用户暂停的）接着扫。
+    /// 窗口出现时调用。先静默检测完全磁盘访问权限：未授权时先展示引导页，不立刻触发多目录系统弹窗。
     func start() {
         isActive = true
+        hasFullDiskAccess = probeFullDiskAccess()
+        guard !needsFullDiskAccessPrompt else { return }
+        beginScanning()
+    }
+
+    /// App 重新回到前台时重检完全磁盘访问权限；一旦授权成功，自动开始扫描。
+    func recheckFullDiskAccess() {
+        let wasPrompting = needsFullDiskAccessPrompt
+        hasFullDiskAccess = probeFullDiskAccess()
+        if wasPrompting, hasFullDiskAccess, isActive {
+            beginScanning()
+        }
+    }
+
+    /// 打开系统设置 → 隐私与安全性 → 完全磁盘访问权限。
+    func openFullDiskAccessSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    /// 用户选择暂不授予完全磁盘访问权限，直接开始扫描（可能会触发系统的逐目录授权弹窗）。
+    func continueWithoutFullDiskAccess() {
+        skippedFullDiskAccessGate = true
+        if isActive {
+            beginScanning()
+        }
+    }
+
+    private func beginScanning() {
         if itemsStack.isEmpty {
             open(Self.homeURL)
         } else {

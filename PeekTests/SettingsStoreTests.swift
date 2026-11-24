@@ -128,4 +128,42 @@ final class SettingsStoreTests: XCTestCase {
         defaults.set("sepia", forKey: SettingsStore.appAppearanceKey)
         XCTAssertEqual(store.appAppearance, .system)
     }
+
+    // MARK: - 菜单栏显示指标
+
+    func testMenuBarMetricDefaultsToCPU() {
+        XCTAssertEqual(store.menuBarMetric, .cpu)
+        XCTAssertEqual(SettingsStore.menuBarMetric(from: defaults), .cpu)
+    }
+
+    func testMenuBarMetricPersistsValidValues() {
+        for metric in MenuBarMetric.allCases {
+            store.menuBarMetric = metric
+            XCTAssertEqual(defaults.string(forKey: SettingsStore.menuBarMetricKey), metric.rawValue)
+            XCTAssertEqual(store.menuBarMetric, metric)
+        }
+    }
+
+    func testMenuBarMetricFallsBackToCPUForInvalidStoredValue() {
+        defaults.set("health", forKey: SettingsStore.menuBarMetricKey)
+        XCTAssertEqual(store.menuBarMetric, .cpu)
+    }
+
+    func testMenuBarMetricFormatting() {
+        let snap = SystemSnapshot.sample
+        XCTAssertEqual(MenuBarMetric.cpu.formattedText(for: snap), PanelFormat.percent(snap.cpu.total))
+        XCTAssertEqual(MenuBarMetric.memory.formattedText(for: snap), PanelFormat.percent(snap.memory.usedFraction))
+        XCTAssertEqual(
+            MenuBarMetric.temperature.formattedText(for: snap),
+            PanelFormat.temperature(snap.thermal.temperatureCelsius))
+        XCTAssertNil(MenuBarMetric.none.formattedText(for: snap))
+
+        XCTAssertEqual(MenuBarMetric.compactRate(0), "0K")
+        XCTAssertEqual(MenuBarMetric.compactRate(240_000), "240K")
+        XCTAssertEqual(MenuBarMetric.compactRate(999_600), "1M")
+        XCTAssertEqual(MenuBarMetric.compactRate(1_250_000), "1.3M")
+        XCTAssertEqual(MenuBarMetric.compactRate(12_400_000), "12M")
+        XCTAssertEqual(MenuBarMetric.compactRate(2_000_000_000), "2G")
+        XCTAssertEqual(MenuBarMetric.compactRate(12_600_000_000), "13G")
+    }
 }

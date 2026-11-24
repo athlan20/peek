@@ -8,6 +8,7 @@ import Foundation
 /// - `refreshIntervalSeconds`：面板打开时的采样间隔，`SystemMonitor` 读它。
 /// - `app.language`：界面语言（`system` / `en` / `zh-Hans`），默认跟随系统。
 /// - `app.appearance`：界面外观（`system` / `light` / `dark`），默认跟随系统。
+/// - `app.menuBarMetric`：菜单栏显示指标（`cpu` / `memory` / `network` / `temperature` / `none`），默认 `cpu`。
 ///
 /// `UserDefaults` 可注入，测试里用临时 suite。
 struct SettingsStore {
@@ -16,6 +17,7 @@ struct SettingsStore {
     static let refreshIntervalKey = "refreshIntervalSeconds"
     static let appLanguageKey = "app.language"
     static let appAppearanceKey = "app.appearance"
+    static let menuBarMetricKey = "app.menuBarMetric"
 
     /// 面板打开时可选的采样间隔（秒）。第一项是默认值。
     static let refreshIntervalOptions = [1, 2, 5]
@@ -126,6 +128,23 @@ struct SettingsStore {
         get { Self.appAppearance(from: defaults) }
         nonmutating set {
             defaults.set(newValue.rawValue, forKey: Self.appAppearanceKey)
+        }
+    }
+
+    // MARK: - 菜单栏显示指标
+
+    /// 没有或不是有效指标值时回退到 CPU。
+    nonisolated static func menuBarMetric(from defaults: UserDefaults) -> MenuBarMetric {
+        guard let raw = defaults.string(forKey: menuBarMetricKey),
+              let metric = MenuBarMetric(rawValue: raw)
+        else { return .cpu }
+        return metric
+    }
+
+    var menuBarMetric: MenuBarMetric {
+        get { Self.menuBarMetric(from: defaults) }
+        nonmutating set {
+            defaults.set(newValue.rawValue, forKey: Self.menuBarMetricKey)
         }
     }
 }
