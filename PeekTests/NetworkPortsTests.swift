@@ -76,6 +76,8 @@ final class NetworkPortsTests: XCTestCase {
         XCTAssertEqual(rows[2].slots.map(\.span), [1])
         XCTAssertEqual(NetworkPortGroups.totalColumns(forWidth: 640), 3)
         XCTAssertEqual(NetworkPortGroups.totalColumns(forWidth: 860), 4)
+        XCTAssertEqual(NetworkPortGroups.tileColumns(forWidth: 628), 4)
+        XCTAssertEqual(NetworkPortGroups.tileColumns(forWidth: 800), 5)
     }
 
     func testListeningPortCopyableAddressAndExposure() {

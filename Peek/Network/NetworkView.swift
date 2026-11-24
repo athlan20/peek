@@ -239,7 +239,7 @@ struct NetworkView: View {
                 switch layout {
                 case .board:
                     NetworkBoardView(
-                        groups: model.groups,
+                        ports: model.filteredPorts,
                         selectedPortID: model.selectedPortID,
                         onSelect: { model.selectedPortID = $0.id },
                         onOpen: { model.openInBrowser($0) },

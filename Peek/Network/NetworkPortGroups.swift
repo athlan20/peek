@@ -131,6 +131,17 @@ enum NetworkPortGroups {
             .sorted { $0.port < $1.port }
     }
 
+    /// 根据画布宽度计算等大端口瓷砖矩阵的列数（默认 4 列，宽屏最多 6 列，窄屏最少 3 列）。
+    static func tileColumns(
+        forWidth width: CGFloat,
+        gap: CGFloat = 10,
+        minTileWidth: CGFloat = 144
+    ) -> Int {
+        guard width > 0 else { return 4 }
+        let raw = Int(floor((width + gap) / (minTileWidth + gap)))
+        return max(3, min(6, raw))
+    }
+
     /// 根据画布宽度计算整齐 Bento 栅格的总列数（通常 3~4 列，确保单列进程名与端口完整可读）。
     static func totalColumns(
         forWidth width: CGFloat,
