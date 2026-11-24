@@ -83,6 +83,11 @@ Treemap & list view of installed applications color-coded by last-used recency, 
 
 ## Installation
 
+### Homebrew (Recommended)
+```bash
+brew install --cask athlan20/tap/peek
+```
+
 ### Download Release
 1. Download the latest `.dmg` for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) from [GitHub Releases](https://github.com/athlan20/peek/releases) or [peek.yuntianyou.cc](https://peek.yuntianyou.cc).
 2. Open the `.dmg` and drag **Peek** into `Applications`.

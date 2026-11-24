@@ -83,7 +83,12 @@
 
 ## 安装指南
 
-### 下载安装
+### Homebrew 安装（推荐）
+```bash
+brew install --cask athlan20/tap/peek
+```
+
+### 手动下载安装
 1. 前往 [GitHub Releases](https://github.com/athlan20/peek/releases) 或官网 [peek.yuntianyou.cc](https://peek.yuntianyou.cc) 下载对应架构的 `.dmg` 安装包（Apple Silicon 选 `arm64`，Intel 选 `x86_64`）。
 2. 双击打开 `.dmg`，将 **Peek** 拖入 `Applications`（应用程序）文件夹。
 3. 在“应用程序”中双击打开 **Peek**。
