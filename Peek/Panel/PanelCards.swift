@@ -1579,7 +1579,7 @@ struct NetworkPortsCard: View {
     @State private var hoveredPort: ListeningPort?
 
     private var visiblePorts: [ListeningPort] {
-        Array(ports.prefix(4))
+        Self.panelTopPorts(ports, limit: 4)
     }
 
     var body: some View {
@@ -1772,6 +1772,32 @@ extension BatteryCard {
 }
 
 extension NetworkPortsCard {
+    /// 主面板 NETWORK 卡片最多展示 4 条端口，按优先级挑选：
+    /// 1. Node 进程  2. Web 类端口  3. 其他（保持 AI → DB → Proxy → Other 与端口号升序）。
+    static func panelTopPorts(_ ports: [ListeningPort], limit: Int = 4) -> [ListeningPort] {
+        let sorted = ports.sorted { lhs, rhs in
+            let lRank = panelPriorityRank(for: lhs)
+            let rRank = panelPriorityRank(for: rhs)
+            if lRank != rRank { return lRank < rRank }
+            if lhs.category.priority != rhs.category.priority {
+                return lhs.category.priority < rhs.category.priority
+            }
+            if lhs.port != rhs.port { return lhs.port < rhs.port }
+            return lhs.pid < rhs.pid
+        }
+        return Array(sorted.prefix(max(0, limit)))
+    }
+
+    private static func panelPriorityRank(for item: ListeningPort) -> Int {
+        if item.processName.lowercased().contains("node") {
+            return 0
+        }
+        if item.category == .web {
+            return 1
+        }
+        return 2
+    }
+
     static func categoryColor(_ category: PortCategory) -> Color {
         switch category {
         case .web: PanelPalette.segTeal

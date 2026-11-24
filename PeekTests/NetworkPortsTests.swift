@@ -80,6 +80,21 @@ final class NetworkPortsTests: XCTestCase {
         XCTAssertEqual(NetworkPortGroups.tileColumns(forWidth: 800), 5)
     }
 
+    func testPanelTopPortsPrioritizesNodeThenWebThenOther() {
+        let mixed = [
+            ListeningPort(port: 7895, pid: 1, processName: "mihomo", bindAddress: "127.0.0.1", category: .proxy),
+            ListeningPort(port: 3000, pid: 2, processName: "python3", bindAddress: "127.0.0.1", category: .web),
+            ListeningPort(port: 11434, pid: 3, processName: "ollama", bindAddress: "127.0.0.1", category: .ai),
+            ListeningPort(port: 8080, pid: 4, processName: "node", bindAddress: "127.0.0.1", category: .web),
+            ListeningPort(port: 5432, pid: 5, processName: "postgres", bindAddress: "127.0.0.1", category: .database),
+            ListeningPort(port: 7265, pid: 6, processName: "Node", bindAddress: "127.0.0.1", category: .web),
+        ]
+
+        let top4 = NetworkPortsCard.panelTopPorts(mixed, limit: 4)
+        // 1. Node (:7265, :8080) -> 2. Web (python3 :3000) -> 3. 其他按分类优先级 (ollama :11434)
+        XCTAssertEqual(top4.map(\.port), [7265, 8080, 3000, 11434])
+    }
+
     func testListeningPortCopyableAddressAndExposure() {
         let web = samplePorts[0]
         XCTAssertEqual(web.copyableAddress, "http://localhost:3000")
