@@ -1,6 +1,7 @@
 (() => {
   const REPO = "athlan20/peek";
-  const FALLBACK_VERSION = "0.1.3";
+  const FALLBACK_VERSION = "0.1.4";
+  const THEME_STORAGE_KEY = "peek-website-theme";
 
   const I18N = {
     zh: {
@@ -11,9 +12,11 @@
       "nav.uninstall": "应用卸载",
       "nav.install": "安装指南",
       "nav.download": "下载",
+      "theme.toLight": "切换为浅色外观",
+      "theme.toDark": "切换为深色外观",
       "hero.eyebrow": "macOS 14+ · 100% 原生 Swift & SwiftUI · 开源免费",
       "hero.title": "轻点菜单栏，<br />洞悉 Mac 的每一寸状态。",
-      "hero.subtitle": "常驻于 macOS 菜单栏的高密度暗色 Bento 监控面板，集成实时硬件遥测、交互式磁盘与 AI Agent 空间方块分析，以及支持残留清理的应用卸载器。零外部依赖，后台接近零开销。",
+      "hero.subtitle": "常驻于 macOS 菜单栏的高密度深浅自适应 Bento 监控面板，集成实时硬件遥测、交互式磁盘与 AI Agent 空间方块分析，以及支持残留清理的应用卸载器。零外部依赖，后台接近零开销。",
       "hero.dlArm": "下载 Apple Silicon 版",
       "hero.dlIntel": "Intel Mac 版",
       "hero.releaseLoading": "最新版本：v{ver} · 支持 macOS 14 Sonoma 及以上",
@@ -103,9 +106,11 @@
       "nav.uninstall": "Uninstaller",
       "nav.install": "Install",
       "nav.download": "Download",
+      "theme.toLight": "Switch to light theme",
+      "theme.toDark": "Switch to dark theme",
       "hero.eyebrow": "macOS 14+ · 100% Native Swift & SwiftUI · Open Source",
       "hero.title": "See what your Mac is doing,<br />in one glance.",
-      "hero.subtitle": "A high-density dark Bento dashboard living quietly in your macOS menu bar—combining real-time hardware telemetry, streaming disk & AI Agent treemaps, and a leftover-aware app uninstaller. Zero external CLI dependencies, near-zero idle CPU.",
+      "hero.subtitle": "A high-density adaptive Bento dashboard living quietly in your macOS menu bar—combining real-time hardware telemetry, streaming disk & AI Agent treemaps, and a leftover-aware app uninstaller. Zero external CLI dependencies, near-zero idle CPU.",
       "hero.dlArm": "Download for Apple Silicon",
       "hero.dlIntel": "Intel Mac",
       "hero.releaseLoading": "Latest: v{ver} · Requires macOS 14 Sonoma or later",
@@ -191,6 +196,74 @@
 
   let currentLang = detectInitialLang();
   let currentVersion = FALLBACK_VERSION;
+  let themePref = detectInitialThemePref();
+  const colorSchemeMedia = window.matchMedia
+    ? window.matchMedia("(prefers-color-scheme: light)")
+    : null;
+
+  function detectInitialThemePref() {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return saved === "light" || saved === "dark" ? saved : "system";
+  }
+
+  function getSystemTheme() {
+    return colorSchemeMedia && colorSchemeMedia.matches ? "light" : "dark";
+  }
+
+  function getResolvedTheme() {
+    return themePref === "system" ? getSystemTheme() : themePref;
+  }
+
+  function updateThemeToggleLabel() {
+    const btn = document.getElementById("theme-toggle");
+    if (!btn) return;
+    const resolved = getResolvedTheme();
+    const label = I18N[currentLang][resolved === "light" ? "theme.toDark" : "theme.toLight"];
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+  }
+
+  function applyTheme(pref) {
+    themePref = pref;
+    if (pref === "system") {
+      localStorage.removeItem(THEME_STORAGE_KEY);
+    } else {
+      localStorage.setItem(THEME_STORAGE_KEY, pref);
+    }
+
+    const resolved = getResolvedTheme();
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.themePref = pref;
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute("content", resolved === "light" ? "#f1f4f9" : "#0b0f17");
+    }
+
+    const srcAttr = resolved === "light" ? "data-light-src" : "data-dark-src";
+    document.querySelectorAll("img[data-dark-src][data-light-src]").forEach((img) => {
+      const nextSrc = img.getAttribute(srcAttr);
+      if (nextSrc && img.getAttribute("src") !== nextSrc) {
+        img.setAttribute("src", nextSrc);
+      }
+    });
+
+    document.querySelectorAll("[data-lightbox][data-dark-src][data-light-src]").forEach((trigger) => {
+      const nextSrc = trigger.getAttribute(srcAttr);
+      if (nextSrc) {
+        trigger.setAttribute("data-lightbox", nextSrc);
+      }
+    });
+
+    updateThemeToggleLabel();
+  }
+
+  function toggleTheme() {
+    const nextResolved = getResolvedTheme() === "dark" ? "light" : "dark";
+    // When switching back to match OS preference, re-enable automatic system following
+    const nextPref = nextResolved === getSystemTheme() ? "system" : nextResolved;
+    applyTheme(nextPref);
+  }
 
   function detectInitialLang() {
     const saved = localStorage.getItem("peek-website-lang");
@@ -223,6 +296,8 @@
     document.querySelectorAll("[data-lang-opt]").forEach((el) => {
       el.classList.toggle("active", el.getAttribute("data-lang-opt") === lang);
     });
+
+    updateThemeToggleLabel();
   }
 
   function formatBytes(bytes) {
@@ -391,11 +466,28 @@
 
   // Init
   document.addEventListener("DOMContentLoaded", () => {
+    applyTheme(themePref);
     applyLanguage(currentLang);
     fetchLatestRelease();
     setupCopyButtons();
     setupLightbox();
     setupReveal();
+
+    if (colorSchemeMedia) {
+      const handleSystemThemeChange = () => {
+        if (themePref === "system") applyTheme("system");
+      };
+      if (colorSchemeMedia.addEventListener) {
+        colorSchemeMedia.addEventListener("change", handleSystemThemeChange);
+      } else if (colorSchemeMedia.addListener) {
+        colorSchemeMedia.addListener(handleSystemThemeChange);
+      }
+    }
+
+    const themeBtn = document.getElementById("theme-toggle");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", toggleTheme);
+    }
 
     if (window.location.hash) {
       requestAnimationFrame(() => scrollToHashTarget("auto"));
