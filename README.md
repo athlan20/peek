@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Peek/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" width="108" height="108" alt="Peek Icon" />
+<img src="website/assets/icon-512.png" width="108" height="108" alt="Peek Icon" />
 
 # Peek
 
