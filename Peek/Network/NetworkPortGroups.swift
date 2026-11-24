@@ -21,7 +21,32 @@ struct NetworkProcessGroup: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Network 窗口的纯计算逻辑：搜索过滤、按进程分组排序、同 PID 端口查找、组内网格列数计算。
+/// 整齐 Bento 栅格中的单个进程槽位：按端口数量跨 1...totalColumns 列，保证所有端口瓷砖等宽等高、列线严格对齐。
+struct NetworkBentoSlot: Identifiable, Equatable, Sendable {
+    let group: NetworkProcessGroup
+    let span: Int
+    let innerColumns: Int
+
+    var id: String { group.id }
+
+    /// 该槽位内部端口瓷砖的行数。
+    var innerRows: Int {
+        max(1, Int(ceil(Double(group.ports.count) / Double(max(1, innerColumns)))))
+    }
+}
+
+/// 整齐 Bento 栅格中的一行，行内所有槽位顶底对齐。
+struct NetworkBentoRow: Identifiable, Equatable, Sendable {
+    let id: String
+    let slots: [NetworkBentoSlot]
+
+    /// 本行内所有槽位中最大的内部瓷砖行数，用于统一本行高度。
+    var maxInnerRows: Int {
+        slots.map(\.innerRows).max() ?? 1
+    }
+}
+
+/// Network 窗口的纯计算逻辑：搜索过滤、按进程分组排序、同 PID 端口查找、整齐 Bento 跨列行打包。
 enum NetworkPortGroups {
     /// 按分类和关键词过滤端口（匹配端口号、进程名、PID、监听地址、可执行路径）。
     static func filter(
@@ -106,41 +131,79 @@ enum NetworkPortGroups {
             .sorted { $0.port < $1.port }
     }
 
-    /// 在给定内容区尺寸下，为 `itemCount` 块等大端口瓷砖挑选最均衡的列数。
-    /// 目标是让每块瓷砖尽量保持宽略大于高（约 1.35:1）且不小于最小可读宽度。
-    static func gridColumns(
-        forItemCount itemCount: Int,
-        in size: CGSize,
-        gap: CGFloat = 6,
-        minTileWidth: CGFloat = 86
+    /// 根据画布宽度计算整齐 Bento 栅格的总列数（通常 3~4 列，确保单列进程名与端口完整可读）。
+    static func totalColumns(
+        forWidth width: CGFloat,
+        gap: CGFloat = 10,
+        minColumnWidth: CGFloat = 185
     ) -> Int {
-        guard itemCount > 1, size.width > 0, size.height > 0 else { return 1 }
+        guard width > 0 else { return 3 }
+        let raw = Int(floor((width + gap) / (minColumnWidth + gap)))
+        return max(2, min(5, raw))
+    }
 
-        let maxByWidth = max(1, Int(floor((size.width + gap) / (minTileWidth + gap))))
-        let upperBound = min(itemCount, maxByWidth)
-        guard upperBound > 1 else { return 1 }
-
-        let idealAspect: CGFloat = 1.35
-        var bestColumns = 1
-        var bestScore = CGFloat.greatestFiniteMagnitude
-
-        for cols in 1...upperBound {
-            let rows = Int(ceil(Double(itemCount) / Double(cols)))
-            let tileW = (size.width - gap * CGFloat(cols - 1)) / CGFloat(cols)
-            let tileH = (size.height - gap * CGFloat(rows - 1)) / CGFloat(rows)
-            guard tileW > 0, tileH > 0 else { continue }
-
-            let aspect = tileW / tileH
-            let aspectPenalty = abs(log(aspect / idealAspect))
-            // 轻微惩罚最后一行留白过多
-            let emptySlots = CGFloat(cols * rows - itemCount) / CGFloat(cols * rows)
-            let score = aspectPenalty + emptySlots * 0.35
-            if score < bestScore {
-                bestScore = score
-                bestColumns = cols
-            }
+    /// 计算单个进程组在 `totalColumns` 栅格中的跨列数与内部列数：
+    /// - 1 个端口 → 1×1
+    /// - 2 个端口 → 2×1（并排 2 块等大瓷砖）
+    /// - 3 个端口 → 3×1（宽屏下并排 3 块）
+    /// - 4 个端口 → 2×2（紧凑方阵）
+    /// - 5+ 个端口 → 占满整行
+    static func slotSpec(forPortCount count: Int, totalColumns: Int) -> (span: Int, innerColumns: Int) {
+        let cols = max(1, totalColumns)
+        switch count {
+        case ...1:
+            return (1, 1)
+        case 2:
+            let span = min(2, cols)
+            return (span, span)
+        case 3:
+            let span = min(3, cols)
+            return (span, span)
+        case 4:
+            let span = min(2, cols)
+            return (span, span)
+        default:
+            return (cols, cols)
         }
-        return bestColumns
+    }
+
+    /// 采用 First-Fit 行打包将进程组排入整齐 Bento 栅格，杜绝细长残片并保证每行左右边缘对齐。
+    static func bentoRows(
+        for groups: [NetworkProcessGroup],
+        totalColumns: Int
+    ) -> [NetworkBentoRow] {
+        let cols = max(1, totalColumns)
+        var remaining = groups
+        var rows: [NetworkBentoRow] = []
+
+        while !remaining.isEmpty {
+            let first = remaining.removeFirst()
+            let firstSpec = slotSpec(forPortCount: first.ports.count, totalColumns: cols)
+            var rowSlots = [
+                NetworkBentoSlot(group: first, span: firstSpec.span, innerColumns: firstSpec.innerColumns)
+            ]
+            var used = firstSpec.span
+
+            var idx = 0
+            while used < cols && idx < remaining.count {
+                let candidate = remaining[idx]
+                let spec = slotSpec(forPortCount: candidate.ports.count, totalColumns: cols)
+                if used + spec.span <= cols {
+                    rowSlots.append(
+                        NetworkBentoSlot(group: candidate, span: spec.span, innerColumns: spec.innerColumns)
+                    )
+                    used += spec.span
+                    remaining.remove(at: idx)
+                } else {
+                    idx += 1
+                }
+            }
+
+            let rowID = rowSlots.map(\.id).joined(separator: "|")
+            rows.append(NetworkBentoRow(id: rowID, slots: rowSlots))
+        }
+
+        return rows
     }
 
     private static func dominantCategory(for ports: [ListeningPort]) -> PortCategory {

@@ -55,20 +55,27 @@ final class NetworkPortsTests: XCTestCase {
         XCTAssertEqual(single.map(\.port), [11434])
     }
 
-    func testGridColumnsAdaptsToContainerAspectRatio() {
-        // 宽扁容器放 4 个端口，应选多列
-        let wideCols = NetworkPortGroups.gridColumns(
-            forItemCount: 4,
-            in: CGSize(width: 420, height: 120)
-        )
-        XCTAssertGreaterThanOrEqual(wideCols, 2)
+    func testBentoRowsPackMultiSpanGroupsCleanlyWithoutSlivers() {
+        // 3 列栅格下：mihomo(2) + node(1) 凑满第 1 行；ollama(1) + postgres(1) + netdisk(1) 凑满第 2 行；uni(1) 第 3 行
+        let ports = [
+            ListeningPort(port: 7895, pid: 753, processName: "mihomo", bindAddress: "127.0.0.1", category: .proxy),
+            ListeningPort(port: 9090, pid: 753, processName: "mihomo", bindAddress: "127.0.0.1", category: .proxy),
+            ListeningPort(port: 7265, pid: 1319, processName: "node", bindAddress: "127.0.0.1", category: .web),
+            ListeningPort(port: 11434, pid: 742, processName: "ollama", bindAddress: "127.0.0.1", category: .ai),
+            ListeningPort(port: 18424, pid: 758, processName: "postgres", bindAddress: "127.0.0.1", category: .database),
+            ListeningPort(port: 10000, pid: 760, processName: "netdisk_service", bindAddress: "127.0.0.1", category: .other),
+            ListeningPort(port: 11301, pid: 761, processName: "UniService", bindAddress: "*", category: .other),
+        ]
+        let groups = NetworkPortGroups.groupByProcess(ports)
+        let rows = NetworkPortGroups.bentoRows(for: groups, totalColumns: 3)
 
-        // 窄容器放 4 个端口，受最小宽度限制应回退为 1 列
-        let narrowCols = NetworkPortGroups.gridColumns(
-            forItemCount: 4,
-            in: CGSize(width: 110, height: 320)
-        )
-        XCTAssertEqual(narrowCols, 1)
+        XCTAssertEqual(rows.count, 3)
+        XCTAssertEqual(rows[0].slots.map(\.span), [2, 1])
+        XCTAssertEqual(rows[0].slots.map(\.group.processName), ["mihomo", "node"])
+        XCTAssertEqual(rows[1].slots.map(\.span), [1, 1, 1])
+        XCTAssertEqual(rows[2].slots.map(\.span), [1])
+        XCTAssertEqual(NetworkPortGroups.totalColumns(forWidth: 640), 3)
+        XCTAssertEqual(NetworkPortGroups.totalColumns(forWidth: 860), 4)
     }
 
     func testListeningPortCopyableAddressAndExposure() {

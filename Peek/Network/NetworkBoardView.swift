@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// 方案一「按进程分组的方块拼图」：
-/// 外层按进程分组并使用 `TreemapLayout.squarify` 按端口数量分配面积；
-/// 内层每个端口以等大、清晰可读的圆角发光瓷砖排布。
+/// 方案一「按进程分组的整齐 Bento 方块拼图」：
+/// 外层采用跨列对齐的 Bento 栅格，端口多的进程占更大跨度（2 列 / 3 列 / 整行），单端口进程占 1 列；
+/// 内层所有端口瓷砖保持严格等宽等高、居中饱满排布，杜绝细长竖条与空洞拉伸。
 struct NetworkBoardView: View {
     let groups: [NetworkProcessGroup]
     let selectedPortID: String?
@@ -12,41 +12,66 @@ struct NetworkBoardView: View {
     let onReveal: (ListeningPort) -> Void
     let onKill: (ListeningPort) -> Void
 
+    private let outerPadding: CGFloat = 12
+    private let gridGap: CGFloat = 10
+    private let tileHeight: CGFloat = 76
+    private let innerGap: CGFloat = 8
+    private let clusterPadding: CGFloat = 9
+    private let headerHeight: CGFloat = 18
+    private let headerSpacing: CGFloat = 8
+
     var body: some View {
         GeometryReader { proxy in
-            let bounds = CGRect(origin: .zero, size: proxy.size)
-            let rects = TreemapLayout.squarify(groups.map(\.treemapWeight), in: bounds)
-            let gap: CGFloat = 6
+            let contentWidth = max(0, proxy.size.width - outerPadding * 2)
+            let totalCols = NetworkPortGroups.totalColumns(forWidth: contentWidth, gap: gridGap)
+            let rows = NetworkPortGroups.bentoRows(for: groups, totalColumns: totalCols)
+            let unitWidth = max(
+                0,
+                (contentWidth - gridGap * CGFloat(totalCols - 1)) / CGFloat(totalCols)
+            )
 
-            ZStack(alignment: .topLeading) {
-                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                    let raw = rects[index]
-                    let rect = CGRect(
-                        x: raw.minX.rounded(),
-                        y: raw.minY.rounded(),
-                        width: raw.maxX.rounded() - raw.minX.rounded(),
-                        height: raw.maxY.rounded() - raw.minY.rounded()
-                    )
-                    let effectiveGap = (rect.width > gap * 3 && rect.height > gap * 3) ? gap : 2
-                    ProcessClusterView(
-                        group: group,
-                        selectedPortID: selectedPortID,
-                        onSelect: onSelect,
-                        onOpen: onOpen,
-                        onCopy: onCopy,
-                        onReveal: onReveal,
-                        onKill: onKill
-                    )
-                    .frame(
-                        width: max(0, rect.width - effectiveGap),
-                        height: max(0, rect.height - effectiveGap)
-                    )
-                    .offset(x: rect.minX, y: rect.minY)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: gridGap) {
+                    ForEach(rows) { row in
+                        let innerRows = row.maxInnerRows
+                        let rowHeight =
+                            clusterPadding * 2
+                            + headerHeight
+                            + headerSpacing
+                            + tileHeight * CGFloat(innerRows)
+                            + innerGap * CGFloat(max(0, innerRows - 1))
+
+                        HStack(alignment: .top, spacing: gridGap) {
+                            ForEach(row.slots) { slot in
+                                let slotWidth =
+                                    unitWidth * CGFloat(slot.span)
+                                    + gridGap * CGFloat(max(0, slot.span - 1))
+
+                                ProcessClusterView(
+                                    slot: slot,
+                                    tileHeight: tileHeight,
+                                    innerGap: innerGap,
+                                    clusterPadding: clusterPadding,
+                                    headerHeight: headerHeight,
+                                    headerSpacing: headerSpacing,
+                                    selectedPortID: selectedPortID,
+                                    onSelect: onSelect,
+                                    onOpen: onOpen,
+                                    onCopy: onCopy,
+                                    onReveal: onReveal,
+                                    onKill: onKill
+                                )
+                                .frame(width: slotWidth, height: rowHeight)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
                 }
+                .padding(outerPadding)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .animation(.easeOut(duration: 0.25), value: groups.map { "\($0.id):\($0.ports.count)" })
+            .animation(.easeOut(duration: 0.22), value: groups.map { "\($0.id):\($0.ports.count)" })
         }
-        .padding(10)
     }
 }
 
@@ -55,7 +80,12 @@ struct NetworkBoardView: View {
 private struct ProcessClusterView: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let group: NetworkProcessGroup
+    let slot: NetworkBentoSlot
+    let tileHeight: CGFloat
+    let innerGap: CGFloat
+    let clusterPadding: CGFloat
+    let headerHeight: CGFloat
+    let headerSpacing: CGFloat
     let selectedPortID: String?
     let onSelect: (ListeningPort) -> Void
     let onOpen: (ListeningPort) -> Void
@@ -63,55 +93,83 @@ private struct ProcessClusterView: View {
     let onReveal: (ListeningPort) -> Void
     let onKill: (ListeningPort) -> Void
 
+    private var group: NetworkProcessGroup { slot.group }
+
     private var accent: Color {
         NetworkPortsCard.categoryColor(group.dominantCategory)
     }
 
     var body: some View {
         let isLight = colorScheme == .light
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 11, style: .continuous)
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: innerGap),
+            count: max(1, slot.innerColumns)
+        )
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: headerSpacing) {
             clusterHeader
 
-            GeometryReader { inner in
-                let gap: CGFloat = 6
-                let cols = NetworkPortGroups.gridColumns(
-                    forItemCount: group.ports.count,
-                    in: inner.size,
-                    gap: gap,
-                    minTileWidth: 84
-                )
-                let rows = max(1, Int(ceil(Double(group.ports.count) / Double(cols))))
-                let availableH = inner.size.height - gap * CGFloat(rows - 1)
-                let idealTileH = availableH / CGFloat(rows)
-                let minTileH: CGFloat = 50
-                let needsScroll = idealTileH < minTileH
-                let tileH = max(minTileH, idealTileH)
-                let gridColumns = Array(repeating: GridItem(.flexible(), spacing: gap), count: cols)
-
-                if needsScroll {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVGrid(columns: gridColumns, spacing: gap) {
-                            portTiles(tileHeight: tileH)
+            LazyVGrid(columns: columns, spacing: innerGap) {
+                ForEach(group.ports) { item in
+                    PortBlockTile(
+                        item: item,
+                        showPID: group.pids.count > 1,
+                        isSelected: item.id == selectedPortID
+                    )
+                    .frame(height: tileHeight)
+                    .onTapGesture(count: 2) {
+                        onSelect(item)
+                        if item.isWebOpenable {
+                            onOpen(item)
+                        } else {
+                            onCopy(item)
                         }
                     }
-                } else {
-                    LazyVGrid(columns: gridColumns, spacing: gap) {
-                        portTiles(tileHeight: tileH)
+                    .onTapGesture {
+                        onSelect(item)
+                    }
+                    .contextMenu {
+                        if item.isWebOpenable {
+                            Button {
+                                onOpen(item)
+                            } label: {
+                                Label("Open in Browser", systemImage: "arrow.up.right.square")
+                            }
+                        }
+                        Button {
+                            onCopy(item)
+                        } label: {
+                            Label("Copy Address", systemImage: "doc.on.doc")
+                        }
+                        if item.executablePath != nil {
+                            Button {
+                                onReveal(item)
+                            } label: {
+                                Label("Reveal in Finder", systemImage: "folder")
+                            }
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            onKill(item)
+                        } label: {
+                            Label("Kill Process", systemImage: "xmark.octagon")
+                        }
                     }
                 }
             }
+
+            Spacer(minLength: 0)
         }
-        .padding(8)
+        .padding(clusterPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background {
             shape
-                .fill(isLight ? Color.white.opacity(0.72) : Color.white.opacity(0.03))
+                .fill(isLight ? Color.white.opacity(0.76) : Color.white.opacity(0.03))
                 .overlay {
                     LinearGradient(
                         colors: [
-                            accent.opacity(isLight ? 0.11 : 0.14),
+                            accent.opacity(isLight ? 0.10 : 0.14),
                             Color.clear,
                         ],
                         startPoint: .topLeading,
@@ -162,61 +220,11 @@ private struct ProcessClusterView: View {
                 .padding(.vertical, 1.5)
                 .background(accent.opacity(0.14), in: Capsule())
         }
-        .frame(height: 18)
-    }
-
-    @ViewBuilder
-    private func portTiles(tileHeight: CGFloat) -> some View {
-        ForEach(group.ports) { item in
-            PortBlockTile(
-                item: item,
-                showPID: group.pids.count > 1,
-                isSelected: item.id == selectedPortID
-            )
-            .frame(height: tileHeight)
-            .onTapGesture(count: 2) {
-                onSelect(item)
-                if item.isWebOpenable {
-                    onOpen(item)
-                } else {
-                    onCopy(item)
-                }
-            }
-            .onTapGesture {
-                onSelect(item)
-            }
-            .contextMenu {
-                if item.isWebOpenable {
-                    Button {
-                        onOpen(item)
-                    } label: {
-                        Label("Open in Browser", systemImage: "arrow.up.right.square")
-                    }
-                }
-                Button {
-                    onCopy(item)
-                } label: {
-                    Label("Copy Address", systemImage: "doc.on.doc")
-                }
-                if item.executablePath != nil {
-                    Button {
-                        onReveal(item)
-                    } label: {
-                        Label("Reveal in Finder", systemImage: "folder")
-                    }
-                }
-                Divider()
-                Button(role: .destructive) {
-                    onKill(item)
-                } label: {
-                    Label("Kill Process", systemImage: "xmark.octagon")
-                }
-            }
-        }
+        .frame(height: headerHeight)
     }
 }
 
-// MARK: - 内层等大端口瓷砖
+// MARK: - 内层等大居中端口瓷砖
 
 private struct PortBlockTile: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -233,22 +241,46 @@ private struct PortBlockTile: View {
 
     var body: some View {
         let isLight = colorScheme == .light
-        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
 
-        GeometryReader { proxy in
-            let compact = proxy.size.height < 64 || proxy.size.width < 108
+        ZStack {
+            // 中央视觉焦点：大号等宽端口号 + 监听地址（与 Analyze / Uninstall 方块居中质感一致）
+            VStack(spacing: 3) {
+                Text(verbatim: ":\(item.port)")
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundStyle(PanelPalette.treemapTextPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
-                // 顶行：分类标签 + 活跃连接 / 对外暴露提示
+                HStack(spacing: 4) {
+                    Text(verbatim: item.bindAddress)
+                        .font(.system(size: 10, weight: .medium).monospacedDigit())
+                        .foregroundStyle(PanelPalette.treemapTextSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    if showPID {
+                        Text(verbatim: "· #\(item.pid)")
+                            .font(.system(size: 9.5, weight: .regular).monospacedDigit())
+                            .foregroundStyle(PanelPalette.textMuted)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .padding(.top, 10)
+            .padding(.horizontal, 8)
+
+            // 顶角轻巧元信息：左上分类胶囊，右上活跃连接 / 对外暴露图标
+            VStack {
                 HStack(spacing: 4) {
                     Text(verbatim: NetworkPortsCard.categoryTag(item.category))
-                        .font(.system(size: compact ? 8 : 8.5, weight: .bold))
+                        .font(.system(size: 8.5, weight: .bold))
                         .tracking(0.3)
                         .foregroundStyle(categoryColor)
-                        .padding(.horizontal, 4.5)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
                         .background(
-                            categoryColor.opacity(isLight ? 0.16 : 0.20),
+                            categoryColor.opacity(isLight ? 0.16 : 0.22),
                             in: Capsule()
                         )
 
@@ -265,41 +297,16 @@ private struct PortBlockTile: View {
                         }
                     } else if item.isExposedExternally {
                         Image(systemName: "globe")
-                            .font(.system(size: 8.5, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(PanelPalette.treemapTextSecondary)
                     }
                 }
-
                 Spacer(minLength: 0)
-
-                // 核心端口号：大号等宽字
-                Text(verbatim: ":\(item.port)")
-                    .font(.system(size: compact ? 14 : 17, weight: .bold, design: .monospaced))
-                    .foregroundStyle(PanelPalette.treemapTextPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-
-                // 底行：监听地址（多 PID 时附带 PID）
-                HStack(spacing: 4) {
-                    Text(verbatim: item.bindAddress)
-                        .font(.system(size: compact ? 8.5 : 9.5, weight: .medium).monospacedDigit())
-                        .foregroundStyle(PanelPalette.treemapTextSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-
-                    if showPID && !compact {
-                        Spacer(minLength: 2)
-                        Text(verbatim: "#\(item.pid)")
-                            .font(.system(size: 8.5, weight: .regular).monospacedDigit())
-                            .foregroundStyle(PanelPalette.textMuted)
-                            .lineLimit(1)
-                    }
-                }
             }
-            .padding(.horizontal, compact ? 7 : 9)
-            .padding(.vertical, compact ? 5 : 7)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 6)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             shape
                 .fill(tileBaseFill(isLight: isLight))
