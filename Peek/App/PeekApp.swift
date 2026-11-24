@@ -168,6 +168,7 @@ private enum MenuBarStatusImage {
 
 /// 与 `AppIcon.icns` 一致的非对称 2×2 Bento 网格菜单栏模板图标（自动适配浅色/深色系统菜单栏）。
 private enum MenuBarBentoIcon {
+    @MainActor
     static let templateImage: NSImage = {
         let size = NSSize(width: 15, height: 15)
         let image = NSImage(size: size, flipped: true) { _ in
