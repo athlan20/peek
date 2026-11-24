@@ -8,12 +8,15 @@ struct SettingsView: View {
     private var appearanceManager: AppearanceManager = .shared
     private var menuBarMetricManager: MenuBarMetricManager = .shared
 
+    private static let sponsorURL = URL(string: "https://peek.yuntianyou.cc/#sponsor")!
+
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
                 generalCard
                 fullDiskAccessCard
                 updateCard
+                sponsorCard
             }
             .padding(14)
         }
@@ -472,6 +475,29 @@ struct SettingsView: View {
             get: { updater.autoCheckEnabled },
             set: { updater.autoCheckEnabled = $0 }
         )
+    }
+
+    // MARK: - 支持作者
+
+    private var sponsorCard: some View {
+        BentoCard(borderColor: PanelPalette.thermalAccent.opacity(0.65), topGlow: PanelPalette.thermalGlow) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SUPPORT PEEK")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(0.4)
+                        .foregroundStyle(PanelPalette.textSecondary)
+                    Text("Free, open-source, and built with care.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PanelPalette.textMuted)
+                }
+                Spacer()
+                SettingsPillButton(title: Text("Buy the author a coffee ☕"), systemName: "cup.and.saucer") {
+                    NSWorkspace.shared.open(Self.sponsorURL)
+                }
+            }
+            .padding(2)
+        }
     }
 }
 

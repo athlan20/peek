@@ -865,6 +865,22 @@
         }
       }
     },
+    "Buy the author a coffee ☕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buy the author a coffee ☕"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请作者喝杯咖啡 ☕"
+          }
+        }
+      }
+    },
     "COOL": {
       "localizations": {
         "en": {
@@ -1853,6 +1869,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "可用"
+          }
+        }
+      }
+    },
+    "Free, open-source, and built with care.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free, open-source, and built with care."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费、开源，持续用心打磨。"
           }
         }
       }
@@ -4205,6 +4237,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "存储"
+          }
+        }
+      }
+    },
+    "SUPPORT PEEK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SUPPORT PEEK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 PEEK"
           }
         }
       }

@@ -54,6 +54,7 @@ final class LocalizationTests: XCTestCase {
             ("Menu bar", "Menu bar", "菜单栏显示"),
             ("settings.menubar.memory", "Mem", "内存"),
             ("settings.menubar.network", "Net", "网络"),
+            ("Buy the author a coffee ☕", "Buy the author a coffee ☕", "请作者喝杯咖啡 ☕"),
         ]
 
         for (key, expectedEn, expectedZh) in samples {

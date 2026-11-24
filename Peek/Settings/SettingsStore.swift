@@ -19,8 +19,9 @@ struct SettingsStore {
     static let appAppearanceKey = "app.appearance"
     static let menuBarMetricKey = "app.menuBarMetric"
 
-    /// 面板打开时可选的采样间隔（秒）。第一项是默认值。
-    static let refreshIntervalOptions = [1, 2, 5]
+    /// 面板打开时可选的采样间隔（秒）。
+    static let refreshIntervalOptions = [1, 3, 5, 10]
+    static let defaultRefreshInterval = 3
 
     var defaults: UserDefaults
 
@@ -82,17 +83,17 @@ struct SettingsStore {
 
     // MARK: - 刷新间隔
 
-    /// 没有、不是整数或不在选项里时用 1 秒。
+    /// 没有、不是整数或不在选项里时用默认 3 秒。
     static func refreshInterval(from defaults: UserDefaults) -> Int {
         let value = defaults.integer(forKey: refreshIntervalKey)
-        return refreshIntervalOptions.contains(value) ? value : refreshIntervalOptions[0]
+        return refreshIntervalOptions.contains(value) ? value : defaultRefreshInterval
     }
 
     /// 读到无效值时回退到默认，写入时也收敛到选项里。
     var refreshInterval: Int {
         get { Self.refreshInterval(from: defaults) }
         nonmutating set {
-            let value = Self.refreshIntervalOptions.contains(newValue) ? newValue : Self.refreshIntervalOptions[0]
+            let value = Self.refreshIntervalOptions.contains(newValue) ? newValue : Self.defaultRefreshInterval
             defaults.set(value, forKey: Self.refreshIntervalKey)
         }
     }

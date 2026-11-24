@@ -14,6 +14,7 @@ struct PanelView: View {
 
     private var snapshot: SystemSnapshot { monitor.snapshot }
     private var open: DestinationOpener { DestinationOpener(openWindow: openWindow) }
+    private static let sponsorURL = URL(string: "https://peek.yuntianyou.cc/#sponsor")!
 
     var body: some View {
         VStack(spacing: 10) {
@@ -135,6 +136,14 @@ struct PanelView: View {
                 .buttonStyle(.plain)
                 .help(Text("Update available: v\(release.version)"))
             }
+
+            PanelToolbarIconButton(
+                systemName: "cup.and.saucer",
+                label: Text("Buy the author a coffee ☕")
+            ) {
+                NSWorkspace.shared.open(Self.sponsorURL)
+            }
+            .help(Text("Buy the author a coffee ☕"))
 
             PanelToolbarIconButton(
                 systemName: "gearshape",
