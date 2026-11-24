@@ -5,6 +5,13 @@ import IOKit
 /// 读写速度用 IOKit `IOBlockStorageDriver` 的 Statistics 累计字节数做差。
 struct DiskSampler {
     private var previous: (time: Date, read: UInt64, write: UInt64)?
+    /// 磁盘容量（总容量 / 可用 / 可清除）缓存：15 秒更新一次，
+    /// 避免每秒调用 `volumeAvailableCapacityForImportantUsageKey` 触发 CacheDelete 与大量 IOKit IPC。
+    private static let capacityInterval: TimeInterval = 15
+    private var cachedCapacity: (
+        time: Date,
+        value: (used: UInt64, total: UInt64, free: UInt64, purgeable: UInt64)
+    )?
     /// 磁盘分类估算缓存：5 分钟更新一次，避免高频遍历大目录。
     private static let breakdownInterval: TimeInterval = 300
     private var cachedBreakdown: (time: Date, apps: UInt64)?
@@ -17,7 +24,14 @@ struct DiskSampler {
 
     mutating func sample(includeBreakdown: Bool = true) -> DiskStats {
         let now = Date()
-        let capacity = Self.capacity()
+        let capacity: (used: UInt64, total: UInt64, free: UInt64, purgeable: UInt64)
+        if let cached = cachedCapacity, now.timeIntervalSince(cached.time) < Self.capacityInterval {
+            capacity = cached.value
+        } else {
+            let fresh = Self.capacity()
+            cachedCapacity = (now, fresh)
+            capacity = fresh
+        }
 
         let current = Self.cumulativeBytes()
         let baseline = previous

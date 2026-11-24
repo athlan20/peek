@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// 采样频率。面板打开时按设置间隔采样；关闭后若菜单栏显示实时指标则沿用设置间隔，仅图标时 30 秒低频采样。
+/// 采样频率。面板打开时按设置间隔全量采样；关闭后仅对菜单栏当前指标按设置间隔轻量采样，仅图标时停止后台采样。
 enum SamplingMode: Sendable {
     case panelOpen
     case background
@@ -28,6 +28,11 @@ final class SystemMonitor {
     static let shared = SystemMonitor()
 
     private(set) var snapshot: SystemSnapshot = .sample
+    /// 菜单栏专用轻量显示值。后台模式只更新此字段且按值去重，不改写 `snapshot`，
+    /// 避免常驻内存的隐藏 `PanelView` 每秒被无效刷新，也避免文案未变时重绘菜单栏。
+    private(set) var menuBarValue: MenuBarDisplayValue = .make(
+        metric: SettingsStore.menuBarMetric(from: .standard),
+        snapshot: .sample)
 
     private var cpuSamples = SampleHistory()
     private var memorySamples = SampleHistory()
@@ -71,6 +76,9 @@ final class SystemMonitor {
 
     /// 刷新间隔或菜单栏指标改了之后重启定时器，新的间隔立刻生效。
     func restartTimer() {
+        if SettingsStore.menuBarMetric(from: .standard) == .none {
+            updateMenuBarValue(.none)
+        }
         start()
     }
 
@@ -80,6 +88,9 @@ final class SystemMonitor {
             guard let self else { return }
             let result = await self.engine.collect(includeTopProcesses: self.mode == .panelOpen)
             self.snapshot = result.snapshot
+            self.updateMenuBarValue(.make(
+                metric: SettingsStore.menuBarMetric(from: .standard),
+                snapshot: result.snapshot))
             if self.mode == .panelOpen {
                 self.recordHistory(for: result.snapshot)
             }
@@ -98,22 +109,65 @@ final class SystemMonitor {
         }
     }
 
+    private func updateMenuBarValue(_ newValue: MenuBarDisplayValue) {
+        guard menuBarValue != newValue else { return }
+        menuBarValue = newValue
+    }
+
     /// 采样循环。取消时（切换模式）立刻退出，不发布过期结果。
     private func run() async {
-        await engine.prime(includeProcesses: mode == .panelOpen)
+        if mode == .background {
+            await runBackgroundLoop()
+        } else {
+            await runPanelOpenLoop()
+        }
+    }
+
+    /// 面板打开时的完整采样循环：采全量系统数据并追加趋势历史。
+    private func runPanelOpenLoop() async {
+        await engine.prime(includeProcesses: true)
         // 留一点时间让 tick / 字节计数产生差值，第一次采样才有意义。
         do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
 
         while !Task.isCancelled {
-            let includeTopProcesses = mode == .panelOpen
-            let result = await engine.collect(includeTopProcesses: includeTopProcesses)
+            let result = await engine.collect(includeTopProcesses: true)
             if Task.isCancelled { return }
 
             snapshot = result.snapshot
-            // 只有面板打开时才记历史：后台采样会把时间轴拉乱。
-            if mode == .panelOpen {
-                recordHistory(for: result.snapshot)
+            updateMenuBarValue(.make(
+                metric: SettingsStore.menuBarMetric(from: .standard),
+                snapshot: result.snapshot))
+            recordHistory(for: result.snapshot)
+
+            do { try await Task.sleep(for: mode.interval) } catch { return }
+        }
+    }
+
+    /// 后台轻量循环：仅采集菜单栏当前展示的那 1 个指标，不改写 `snapshot`，也不触发隐藏面板重算。
+    /// 当菜单栏设为「仅图标」（`.none`）时直接退出循环，后台零唤醒、零采样。
+    private func runBackgroundLoop() async {
+        let initialMetric = SettingsStore.menuBarMetric(from: .standard)
+        guard initialMetric != .none else {
+            updateMenuBarValue(.none)
+            return
+        }
+
+        let needsBaselineDelay = await engine.primeForMenuBar(initialMetric)
+        if needsBaselineDelay {
+            do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+        }
+
+        while !Task.isCancelled {
+            let metric = SettingsStore.menuBarMetric(from: .standard)
+            guard metric != .none else {
+                updateMenuBarValue(.none)
+                return
             }
+
+            let value = await engine.collectMenuBarValue(for: metric)
+            if Task.isCancelled { return }
+
+            updateMenuBarValue(value)
 
             do { try await Task.sleep(for: mode.interval) } catch { return }
         }
@@ -161,5 +215,8 @@ final class SystemMonitor {
     /// 下一次采样会把它覆盖掉，所以只适合瞬时渲染。
     func seedSnapshot(_ snapshot: SystemSnapshot) {
         self.snapshot = snapshot
+        updateMenuBarValue(.make(
+            metric: SettingsStore.menuBarMetric(from: .standard),
+            snapshot: snapshot))
     }
 }

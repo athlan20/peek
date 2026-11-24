@@ -58,9 +58,10 @@ final class SettingsStoreTests: XCTestCase {
 
     // MARK: - 刷新间隔
 
-    func testRefreshIntervalDefaultsToOneSecond() {
-        XCTAssertEqual(store.refreshInterval, 1)
-        XCTAssertEqual(SettingsStore.refreshInterval(from: defaults), 1)
+    func testRefreshIntervalDefaultsToThreeSeconds() {
+        XCTAssertEqual(SettingsStore.refreshIntervalOptions, [1, 3, 5, 10])
+        XCTAssertEqual(store.refreshInterval, 3)
+        XCTAssertEqual(SettingsStore.refreshInterval(from: defaults), 3)
     }
 
     func testRefreshIntervalKeepsValidValues() {
@@ -72,18 +73,18 @@ final class SettingsStoreTests: XCTestCase {
     }
 
     func testRefreshIntervalFallsBackForInvalidStoredValues() {
-        for value in [0, 3, 10, -1, 100] {
+        for value in [0, 2, 7, -1, 100] {
             defaults.set(value, forKey: SettingsStore.refreshIntervalKey)
-            XCTAssertEqual(store.refreshInterval, 1, "stored \(value) should fall back to 1")
+            XCTAssertEqual(store.refreshInterval, 3, "stored \(value) should fall back to 3")
         }
         defaults.set("abc", forKey: SettingsStore.refreshIntervalKey)
-        XCTAssertEqual(store.refreshInterval, 1)
+        XCTAssertEqual(store.refreshInterval, 3)
     }
 
     func testRefreshIntervalWriteClampsInvalidValues() {
         store.refreshInterval = 7
-        XCTAssertEqual(store.refreshInterval, 1)
-        XCTAssertEqual(defaults.integer(forKey: SettingsStore.refreshIntervalKey), 1)
+        XCTAssertEqual(store.refreshInterval, 3)
+        XCTAssertEqual(defaults.integer(forKey: SettingsStore.refreshIntervalKey), 3)
     }
 
     // MARK: - 界面语言
@@ -165,5 +166,27 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(MenuBarMetric.compactRate(12_400_000), "12M")
         XCTAssertEqual(MenuBarMetric.compactRate(2_000_000_000), "2G")
         XCTAssertEqual(MenuBarMetric.compactRate(12_600_000_000), "13G")
+    }
+
+    func testMenuBarDisplayValueMatchesFormattedText() {
+        let snap = SystemSnapshot.sample
+        for metric in MenuBarMetric.allCases {
+            let value = MenuBarDisplayValue.make(metric: metric, snapshot: snap)
+            XCTAssertEqual(value.accessibilityValue, metric.formattedText(for: snap))
+        }
+        XCTAssertEqual(MenuBarDisplayValue.make(metric: .none, snapshot: snap), .none)
+    }
+
+    func testSamplingEngineMenuBarCollectSmoke() async {
+        let engine = SamplingEngine()
+        for metric in MenuBarMetric.allCases {
+            _ = await engine.primeForMenuBar(metric)
+            let value = await engine.collectMenuBarValue(for: metric)
+            if metric == .none {
+                XCTAssertEqual(value, .none)
+            } else {
+                XCTAssertNotNil(value.accessibilityValue)
+            }
+        }
     }
 }

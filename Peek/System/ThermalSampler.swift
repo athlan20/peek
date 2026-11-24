@@ -8,6 +8,20 @@ import IOKit
 struct ThermalSampler {
     /// 记住本机 IOHID 实际存在哪些通道，避免 SMC 缺失某通道（如无 SSD 传感器）时每秒徒劳全扫 IOHID。
     private var hidAvailability: (cpu: Bool, gpu: Bool, ssd: Bool)?
+    /// 后台菜单栏仅展示 CPU 温度时单独记录 IOHID CPU 通道可用性，不干扰完整采样的 GPU/SSD 探测。
+    private var hidCPUAvailable: Bool?
+
+    /// 轻量采温：只读 CPU 温度，跳过风扇 / GPU / SSD 传感器，供后台菜单栏 `.temperature` 模式使用。
+    mutating func sampleCPUTemperatureOnly() -> Double? {
+        if let cpuTemp = SMCConnection.shared?.readCPUTemperature() {
+            return cpuTemp
+        }
+        let canTryHID = hidCPUAvailable ?? hidAvailability?.cpu ?? true
+        guard canTryHID else { return nil }
+        let hid = IOHIDThermalReader.readTemperatures(needCPU: true, needGPU: false, needSSD: false)
+        hidCPUAvailable = (hid.cpu != nil)
+        return hid.cpu
+    }
 
     mutating func sample() -> ThermalStats {
         var cpuTemp: Double?

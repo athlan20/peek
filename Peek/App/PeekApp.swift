@@ -43,13 +43,11 @@ struct PeekApp: App {
 /// 放两个 `Image` 会丢掉第二个，所以把图标与固定宽度的指标合并绘制为单张模板 `NSImage`。
 private struct MenuBarLabel: View {
     var monitor: SystemMonitor = .shared
-    var metricManager: MenuBarMetricManager = .shared
 
     var body: some View {
-        let metric = metricManager.metric
-        let value = metric.formattedText(for: monitor.snapshot)
-        Image(nsImage: MenuBarStatusImage.render(metric: metric, snapshot: monitor.snapshot))
-            .accessibilityLabel(value.map { Text("Peek \($0)") } ?? Text("Peek"))
+        let value = monitor.menuBarValue
+        Image(nsImage: MenuBarStatusImage.render(value: value))
+            .accessibilityLabel(value.accessibilityValue.map { Text("Peek \($0)") } ?? Text("Peek"))
     }
 }
 
@@ -84,20 +82,31 @@ private enum MenuBarStatusImage {
     private static let rateValueWidth: CGFloat = ceil(("999K" as NSString).size(withAttributes: stackedAttributes()).width)
     private static let networkWidth: CGFloat = arrowWidth + 1 + rateValueWidth
 
-    static func render(metric: MenuBarMetric, snapshot: SystemSnapshot) -> NSImage {
-        switch metric {
+    private static let maxCacheEntries = 128
+    private static var cache: [MenuBarDisplayValue: NSImage] = [:]
+
+    static func render(value: MenuBarDisplayValue) -> NSImage {
+        if case .none = value {
+            return MenuBarBentoIcon.templateImage
+        }
+        if let cached = cache[value] {
+            return cached
+        }
+        let image: NSImage
+        switch value {
         case .none:
             return MenuBarBentoIcon.templateImage
-        case .cpu:
-            return singleLine(PanelFormat.percent(snapshot.cpu.total), textWidth: percentWidth)
-        case .memory:
-            return singleLine(PanelFormat.percent(snapshot.memory.usedFraction), textWidth: percentWidth)
-        case .temperature:
-            return singleLine(PanelFormat.temperature(snapshot.thermal.temperatureCelsius), textWidth: tempWidth)
-        case .network:
-            let rates = MenuBarMetric.networkRates(for: snapshot.network)
-            return stackedNetwork(up: rates.up, down: rates.down)
+        case .singleLine(let metric, let text):
+            let width = metric == .temperature ? tempWidth : percentWidth
+            image = singleLine(text, textWidth: width)
+        case .network(let up, let down):
+            image = stackedNetwork(up: up, down: down)
         }
+        if cache.count >= maxCacheEntries {
+            cache.removeAll(keepingCapacity: true)
+        }
+        cache[value] = image
+        return image
     }
 
     private static func singleLine(_ text: String, textWidth: CGFloat) -> NSImage {

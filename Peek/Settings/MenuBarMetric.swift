@@ -81,6 +81,40 @@ enum MenuBarMetric: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// 菜单栏渲染所需的轻量显示值。只包含格式化后的文案，用于按值去重，避免未变化时触发 SwiftUI / NSImage 重绘。
+enum MenuBarDisplayValue: Hashable, Sendable {
+    case none
+    case singleLine(metric: MenuBarMetric, text: String)
+    case network(up: String, down: String)
+
+    var accessibilityValue: String? {
+        switch self {
+        case .none:
+            return nil
+        case .singleLine(_, let text):
+            return text
+        case .network(let up, let down):
+            return "↑\(up) ↓\(down)"
+        }
+    }
+
+    static func make(metric: MenuBarMetric, snapshot: SystemSnapshot) -> MenuBarDisplayValue {
+        switch metric {
+        case .none:
+            return .none
+        case .cpu:
+            return .singleLine(metric: .cpu, text: PanelFormat.percent(snapshot.cpu.total))
+        case .memory:
+            return .singleLine(metric: .memory, text: PanelFormat.percent(snapshot.memory.usedFraction))
+        case .temperature:
+            return .singleLine(metric: .temperature, text: PanelFormat.temperature(snapshot.thermal.temperatureCelsius))
+        case .network:
+            let rates = MenuBarMetric.networkRates(for: snapshot.network)
+            return .network(up: rates.up, down: rates.down)
+        }
+    }
+}
+
 /// 全局菜单栏显示指标状态：驱动菜单栏标签与设置窗口实时同步。
 @MainActor
 @Observable

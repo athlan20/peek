@@ -104,12 +104,18 @@ final class PanelBentoTests: XCTestCase {
         if let ssdTemp = thermal.ssdTemperatureCelsius {
             XCTAssertTrue((10.0...120.0).contains(ssdTemp))
         }
+        if let cpuOnly = thermalSampler.sampleCPUTemperatureOnly() {
+            XCTAssertTrue((10.0...120.0).contains(cpuOnly))
+        }
 
         var diskSampler = DiskSampler()
         diskSampler.prime()
         let disk = diskSampler.sample()
         XCTAssertGreaterThan(disk.totalBytes, 0)
         XCTAssertEqual(disk.breakdown.totalBytes, disk.totalBytes)
+        // 连续采样命中容量缓存，总容量保持一致。
+        let diskSecond = diskSampler.sample()
+        XCTAssertEqual(diskSecond.totalBytes, disk.totalBytes)
     }
 
     func testPanelViewRendersOffscreen() throws {
