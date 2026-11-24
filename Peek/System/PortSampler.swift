@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 
 /// 本机监听端口的语义分类，用于面板着色与优先级排序。
-enum PortCategory: String, Sendable, Equatable {
+enum PortCategory: String, Sendable, Equatable, Hashable, CaseIterable {
     case web
     case ai
     case database
@@ -27,12 +27,24 @@ struct ListeningPort: Sendable, Equatable, Identifiable {
     var processName: String
     var bindAddress: String
     var category: PortCategory
+    var executablePath: String? = nil
+    var establishedCount: Int = 0
 
     var id: String { "\(pid):\(port)" }
 
     /// 是否适合直接用浏览器打开 `http://localhost:<port>`。
     var isWebOpenable: Bool {
         category == .web || category == .ai || category == .proxy
+    }
+
+    /// 复制到剪贴板的地址。Web / AI / Proxy 带 `http://` 协议前缀，其余给 `host:port`。
+    var copyableAddress: String {
+        isWebOpenable ? "http://localhost:\(port)" : "localhost:\(port)"
+    }
+
+    /// 是否监听在非回环地址（如 `*` / `0.0.0.0` / 局域网 IP）。
+    var isExposedExternally: Bool {
+        bindAddress == "*" || (bindAddress != "127.0.0.1" && bindAddress != "localhost")
     }
 }
 
@@ -43,6 +55,7 @@ struct PortSampler {
     private final class ProcessMetaCache: @unchecked Sendable {
         struct Entry {
             var name: String
+            var path: String?
             var excluded: Bool
         }
 
@@ -58,16 +71,21 @@ struct PortSampler {
             lock.unlock()
 
             let name = PortSampler.processName(pid: pid)
+            let path: String?
             let excluded: Bool
             if name.isEmpty || PortSampler.isIgnoredProcess(name: name) {
-                excluded = true
-            } else if let path = PortSampler.processPath(pid: pid), PortSampler.isSystemPath(path) {
+                path = nil
                 excluded = true
             } else {
-                excluded = false
+                path = PortSampler.processPath(pid: pid)
+                if let path, PortSampler.isSystemPath(path) {
+                    excluded = true
+                } else {
+                    excluded = false
+                }
             }
 
-            let entry = Entry(name: name, excluded: excluded)
+            let entry = Entry(name: name, path: path, excluded: excluded)
             lock.lock()
             entries[pid] = entry
             lock.unlock()
@@ -95,11 +113,11 @@ struct PortSampler {
             let meta = metaCache.resolve(pid: pid)
             guard !meta.excluded else { continue }
 
-            let sockets = Self.listeningSockets(pid: pid)
-            guard !sockets.isEmpty else { continue }
+            let socketScan = Self.listeningSockets(pid: pid)
+            guard !socketScan.listeners.isEmpty else { continue }
 
             // 过滤 49152+ 临时随机 IPC 端口（如 Electron / IDE / IM 内部通信端口）。
-            let validSockets = sockets.filter { $0.port > 0 && $0.port <= 49_151 }
+            let validSockets = socketScan.listeners.filter { $0.port > 0 && $0.port <= 49_151 }
             guard !validSockets.isEmpty else { continue }
 
             for socket in validSockets {
@@ -113,7 +131,9 @@ struct PortSampler {
                         pid: pid,
                         processName: meta.name,
                         bindAddress: socket.bindAddress,
-                        category: category
+                        category: category,
+                        executablePath: meta.path,
+                        establishedCount: socketScan.establishedByLocalPort[socket.port] ?? 0
                     )
                 )
             }
@@ -212,9 +232,16 @@ struct PortSampler {
         return Array(pids.prefix(Int(used) / MemoryLayout<pid_t>.stride)).filter { $0 > 0 }
     }
 
-    private static func listeningSockets(pid: pid_t) -> [(port: UInt16, bindAddress: String)] {
+    private struct SocketScanResult {
+        var listeners: [(port: UInt16, bindAddress: String)]
+        var establishedByLocalPort: [UInt16: Int]
+    }
+
+    private static func listeningSockets(pid: pid_t) -> SocketScanResult {
         let needed = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
-        guard needed > 0 else { return [] }
+        guard needed > 0 else {
+            return SocketScanResult(listeners: [], establishedByLocalPort: [:])
+        }
 
         let fdStride = MemoryLayout<proc_fdinfo>.stride
         let count = Int(needed) / fdStride + 8
@@ -222,10 +249,13 @@ struct PortSampler {
         let used = fds.withUnsafeMutableBytes { buffer in
             proc_pidinfo(pid, PROC_PIDLISTFDS, 0, buffer.baseAddress, Int32(buffer.count))
         }
-        guard used > 0 else { return [] }
+        guard used > 0 else {
+            return SocketScanResult(listeners: [], establishedByLocalPort: [:])
+        }
 
         let actualCount = Int(used) / fdStride
         var sockets: [(UInt16, String)] = []
+        var established: [UInt16: Int] = [:]
 
         for index in 0..<actualCount {
             let fd = fds[index]
@@ -238,17 +268,19 @@ struct PortSampler {
             guard info.psi.soi_kind == SOCKINFO_TCP else { continue }
 
             let tcp = info.psi.soi_proto.pri_tcp
-            guard tcp.tcpsi_state == TSI_S_LISTEN else { continue }
-
             let rawPort = UInt16(truncatingIfNeeded: tcp.tcpsi_ini.insi_lport)
             let port = UInt16(bigEndian: rawPort)
             guard port > 0 else { continue }
 
-            let family = info.psi.soi_family
-            let bindAddress = Self.formatBindAddress(ini: tcp.tcpsi_ini, family: family)
-            sockets.append((port, bindAddress))
+            if tcp.tcpsi_state == TSI_S_LISTEN {
+                let family = info.psi.soi_family
+                let bindAddress = Self.formatBindAddress(ini: tcp.tcpsi_ini, family: family)
+                sockets.append((port, bindAddress))
+            } else if tcp.tcpsi_state == TSI_S_ESTABLISHED {
+                established[port, default: 0] += 1
+            }
         }
-        return sockets
+        return SocketScanResult(listeners: sockets, establishedByLocalPort: established)
     }
 
     private static func formatBindAddress(ini: in_sockinfo, family: Int32) -> String {

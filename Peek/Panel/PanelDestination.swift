@@ -6,6 +6,7 @@ enum PanelDestination: String, Codable, Hashable, CaseIterable {
     case settings
     case analyze
     case uninstall
+    case network
 
     var title: LocalizedStringKey {
         switch self {
@@ -13,6 +14,7 @@ enum PanelDestination: String, Codable, Hashable, CaseIterable {
         case .settings: "Settings"
         case .analyze: "Analyze"
         case .uninstall: "Uninstall"
+        case .network: "Network"
         }
     }
 }
@@ -33,6 +35,8 @@ struct DestinationWindow: View {
             UninstallView()
         case .analyze:
             AnalyzeView()
+        case .network:
+            NetworkView()
         case .settings:
             SettingsView()
         default:

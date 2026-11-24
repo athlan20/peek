@@ -40,7 +40,9 @@ struct PanelView: View {
                 NetworkPortsCard(
                     stats: snapshot.network,
                     ports: snapshot.listeningPorts
-                )
+                ) {
+                    open(.network)
+                }
             }
             .frame(height: 168)
 

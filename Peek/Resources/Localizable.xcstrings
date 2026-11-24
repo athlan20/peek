@@ -145,6 +145,22 @@
         }
       }
     },
+    "%lld PIDs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld PIDs"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个进程"
+          }
+        }
+      }
+    },
     "%lld PORTS": {
       "localizations": {
         "en": {
@@ -253,6 +269,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "已有 %lld 项移到废纸篓"
+          }
+        }
+      }
+    },
+    "%lld ports · %lld processes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ports · %lld processes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 个端口 · %2$lld 个进程"
           }
         }
       }
@@ -481,6 +513,22 @@
         }
       }
     },
+    "All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        }
+      }
+    },
     "Allowed": {
       "localizations": {
         "en": {
@@ -557,6 +605,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "App 正在运行"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
           }
         }
       }
@@ -733,6 +797,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "电池"
+          }
+        }
+      }
+    },
+    "Block View": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block View"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方块视图"
           }
         }
       }
@@ -1265,6 +1345,22 @@
         }
       }
     },
+    "Copy Address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Address"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制地址"
+          }
+        }
+      }
+    },
     "Couldn’t move the item to the Trash.": {
       "localizations": {
         "en": {
@@ -1713,6 +1809,22 @@
         }
       }
     },
+    "Follow system or choose a theme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow system or choose a theme"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统或手动选择浅色/深色"
+          }
+        }
+      }
+    },
     "Free": {
       "localizations": {
         "en": {
@@ -2061,6 +2173,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "项目"
+          }
+        }
+      }
+    },
+    "Kill %@ (PID %@)?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kill %@ (PID %@)?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束 %1$@（PID %2$@）？"
+          }
+        }
+      }
+    },
+    "Kill Process": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kill Process"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束进程"
+          }
+        }
+      }
+    },
+    "Kill Process?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kill Process?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束进程？"
           }
         }
       }
@@ -2753,6 +2913,22 @@
         }
       }
     },
+    "No matching ports": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching ports"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的端口"
+          }
+        }
+      }
+    },
     "No permission": {
       "localizations": {
         "en": {
@@ -2977,6 +3153,22 @@
         }
       }
     },
+    "Open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开"
+          }
+        }
+      }
+    },
     "Open Peek": {
       "localizations": {
         "en": {
@@ -3037,6 +3229,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开“系统设置 → 隐私与安全性”，向下滚动，点“仍要打开”。如果没有这个按钮，在终端里运行："
+          }
+        }
+      }
+    },
+    "Open in Browser": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in Browser"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在浏览器中打开"
           }
         }
       }
@@ -3341,6 +3549,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "不授权 Peek 也能用。授权后还能清理 Safari 缓存和沙盒 App 的缓存，并显示废纸篓的大小。"
+          }
+        }
+      }
+    },
+    "Permission denied to stop this process. It may belong to another user or require elevated privileges.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission denied to stop this process. It may belong to another user or require elevated privileges."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有权限结束该进程，它可能属于其他用户或需要更高权限。"
           }
         }
       }
@@ -3985,6 +4209,38 @@
         }
       }
     },
+    "Search port, process, PID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search port, process, PID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索端口、进程、PID"
+          }
+        }
+      }
+    },
+    "Select a port, or double-click to open in browser": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a port, or double-click to open in browser"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单击选择端口，双击在浏览器中打开"
+          }
+        }
+      }
+    },
     "Select an app or double-click to review leftovers": {
       "localizations": {
         "en": {
@@ -4449,6 +4705,54 @@
         }
       }
     },
+    "This process is listening on multiple ports (%@). Stopping it will release all of them.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This process is listening on multiple ports (%@). Stopping it will release all of them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该进程同时监听了多个端口（%@），结束进程将一并释放这些端口。"
+          }
+        }
+      }
+    },
+    "This process is protected and cannot be terminated from Peek.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This process is protected and cannot be terminated from Peek."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该进程受保护，无法从 Peek 中结束。"
+          }
+        }
+      }
+    },
+    "This will send SIGTERM to %@ and release port :%d.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This will send SIGTERM to %@ and release port :%d."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将向 %1$@ 发送 SIGTERM 信号并释放端口 :%2$d。"
+          }
+        }
+      }
+    },
     "Tool not installed": {
       "localizations": {
         "en": {
@@ -4589,6 +4893,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "软件更新"
+          }
+        }
+      }
+    },
+    "Unable to Stop Process": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to Stop Process"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法结束进程"
           }
         }
       }
@@ -5121,6 +5441,54 @@
         }
       }
     },
+    "settings.appearance.dark": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
+    "settings.appearance.light": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
+          }
+        }
+      }
+    },
+    "settings.appearance.system": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
     "settings.language.system": {
       "localizations": {
         "en": {
@@ -5185,6 +5553,22 @@
         }
       }
     },
+    "· %lld conn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· %lld conn"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· %lld 个连接"
+          }
+        }
+      }
+    },
     "—": {
       "localizations": {
         "en": {
@@ -5213,86 +5597,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@”将移到废纸篓，可从废纸篓恢复。"
-          }
-        }
-      }
-    },
-    "Appearance": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appearance"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外观"
-          }
-        }
-      }
-    },
-    "Follow system or choose a theme": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow system or choose a theme"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跟随系统或手动选择浅色/深色"
-          }
-        }
-      }
-    },
-    "settings.appearance.system": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "System"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跟随系统"
-          }
-        }
-      }
-    },
-    "settings.appearance.light": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Light"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浅色"
-          }
-        }
-      }
-    },
-    "settings.appearance.dark": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dark"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "深色"
           }
         }
       }

@@ -1573,6 +1573,7 @@ struct CompactThermalCard: View {
 struct NetworkPortsCard: View {
     let stats: NetworkStats
     let ports: [ListeningPort]
+    var onOpenNetwork: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var hoveredPort: ListeningPort?
@@ -1670,6 +1671,10 @@ struct NetworkPortsCard: View {
                 .frame(height: 13)
             }
         }
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            onOpenNetwork?()
+        }
         .onHover { hovering in
             isHovered = hovering
             if !hovering { hoveredPort = nil }
@@ -1746,7 +1751,10 @@ struct NetworkPortsCard: View {
     private func openInBrowser(_ item: ListeningPort) {
         guard item.isWebOpenable,
             let url = URL(string: "http://localhost:\(item.port)")
-        else { return }
+        else {
+            onOpenNetwork?()
+            return
+        }
         NSWorkspace.shared.open(url)
     }
 }
