@@ -1633,6 +1633,22 @@
         }
       }
     },
+    "Download Manually": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download Manually"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手动下载"
+          }
+        }
+      }
+    },
     "Downloading v%@…": {
       "localizations": {
         "en": {

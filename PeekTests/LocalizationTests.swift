@@ -55,6 +55,7 @@ final class LocalizationTests: XCTestCase {
             ("settings.menubar.memory", "Mem", "内存"),
             ("settings.menubar.network", "Net", "网络"),
             ("Buy the author a coffee ☕", "Buy the author a coffee ☕", "请作者喝杯咖啡 ☕"),
+            ("Download Manually", "Download Manually", "手动下载"),
         ]
 
         for (key, expectedEn, expectedZh) in samples {

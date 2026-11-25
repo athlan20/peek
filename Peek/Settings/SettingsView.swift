@@ -462,6 +462,9 @@ struct SettingsView: View {
                         .foregroundStyle(PanelPalette.thermalAccent)
                         .lineLimit(2)
                     Spacer()
+                    SettingsPillButton(title: Text("Download Manually"), systemName: "arrow.up.right") {
+                        updater.openLatestReleasePage()
+                    }
                     SettingsPillButton(title: Text("Retry"), systemName: "arrow.clockwise") {
                         updater.checkForUpdates(manual: true)
                     }

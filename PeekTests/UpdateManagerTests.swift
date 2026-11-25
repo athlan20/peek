@@ -66,4 +66,96 @@ final class UpdateManagerTests: XCTestCase {
         )
         XCTAssertNil(UpdateManager.parseLeafCertHash(from: "designated => cdhash H\"1234\""))
     }
+
+    func testExtractTagNameFromReleaseURL() {
+        XCTAssertEqual(
+            UpdateManager.extractTagName(
+                fromReleaseURL: URL(string: "https://github.com/athlan20/peek/releases/tag/v0.1.6")!
+            ),
+            "v0.1.6"
+        )
+        XCTAssertEqual(
+            UpdateManager.extractTagName(
+                fromReleaseURL: URL(string: "https://github.com/athlan20/peek/releases/tag/v0.2.0?foo=bar")!
+            ),
+            "v0.2.0"
+        )
+        XCTAssertNil(
+            UpdateManager.extractTagName(
+                fromReleaseURL: URL(string: "https://github.com/athlan20/peek/releases")!
+            )
+        )
+    }
+
+    func testBuildFallbackReleaseWithAndWithoutChecksums() {
+        let fallback = UpdateManager.buildFallbackRelease(
+            tagName: "v0.1.6",
+            currentVersion: "0.1.3",
+            arch: "arm64"
+        )
+        XCTAssertEqual(fallback?.version, "0.1.6")
+        XCTAssertEqual(fallback?.tagName, "v0.1.6")
+        XCTAssertEqual(fallback?.assetName, "Peek-0.1.6-arm64.zip")
+        XCTAssertEqual(
+            fallback?.downloadURL.absoluteString,
+            "https://github.com/athlan20/peek/releases/download/v0.1.6/Peek-0.1.6-arm64.zip"
+        )
+        XCTAssertEqual(
+            fallback?.sha256AssetURL?.absoluteString,
+            "https://github.com/athlan20/peek/releases/download/v0.1.6/SHA256SUMS.txt"
+        )
+        XCTAssertEqual(
+            fallback?.releasePageURL.absoluteString,
+            "https://github.com/athlan20/peek/releases/tag/v0.1.6"
+        )
+
+        // 已是最新版时返回 nil
+        XCTAssertNil(
+            UpdateManager.buildFallbackRelease(tagName: "v0.1.3", currentVersion: "0.1.3", arch: "arm64")
+        )
+
+        // 结合 SHA256SUMS.txt 精确匹配架构
+        let hashA = String(repeating: "a", count: 64)
+        let hashB = String(repeating: "b", count: 64)
+        let sums = """
+        \(hashA)  Peek-0.1.6-arm64.dmg
+        \(hashB)  Peek-0.1.6-x86_64.zip
+        """
+        let intel = UpdateManager.buildFallbackRelease(
+            tagName: "v0.1.6",
+            currentVersion: "0.1.3",
+            arch: "x86_64",
+            sha256SumsText: sums
+        )
+        XCTAssertEqual(intel?.assetName, "Peek-0.1.6-x86_64.zip")
+        // SHA256SUMS.txt 中不含 arm64.zip 时返回 nil
+        XCTAssertNil(
+            UpdateManager.buildFallbackRelease(
+                tagName: "v0.1.6",
+                currentVersion: "0.1.3",
+                arch: "arm64",
+                sha256SumsText: sums
+            )
+        )
+    }
+
+    func testShouldAutoCheckThrottlesSuccessAndFailure() {
+        let now = Date()
+        XCTAssertTrue(UpdateManager.shouldAutoCheck(now: now, lastSuccess: nil, lastFailure: nil))
+        // 成功后 24 小时内不检查
+        XCTAssertFalse(UpdateManager.shouldAutoCheck(now: now, lastSuccess: now.addingTimeInterval(-3600), lastFailure: nil))
+        XCTAssertTrue(UpdateManager.shouldAutoCheck(now: now, lastSuccess: now.addingTimeInterval(-25 * 3600), lastFailure: nil))
+        // 失败后 1 小时内不检查，超过 1 小时可重试
+        XCTAssertFalse(UpdateManager.shouldAutoCheck(now: now, lastSuccess: nil, lastFailure: now.addingTimeInterval(-600)))
+        XCTAssertTrue(UpdateManager.shouldAutoCheck(now: now, lastSuccess: nil, lastFailure: now.addingTimeInterval(-3700)))
+        XCTAssertFalse(UpdateManager.shouldAutoCheck(
+            now: now,
+            lastSuccess: now.addingTimeInterval(-25 * 3600),
+            lastFailure: now.addingTimeInterval(-600)
+        ))
+    }
+
+    func testLatestReleasePageURL() {
+        XCTAssertEqual(UpdateManager.latestReleasePageURL.absoluteString, "https://github.com/athlan20/peek/releases/latest")
+    }
 }

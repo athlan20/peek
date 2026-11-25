@@ -61,7 +61,11 @@ final class UpdateManager {
     nonisolated static let repoSlug = "athlan20/peek"
     static let autoCheckKey = "peek.update.autoCheck"
     static let lastCheckKey = "peek.update.lastCheckAt"
-    private static let checkInterval: TimeInterval = 24 * 60 * 60
+    static let lastFailedCheckKey = "peek.update.lastFailedCheckAt"
+    private nonisolated static let checkInterval: TimeInterval = 24 * 60 * 60
+    /// 静默检查失败后的重试间隔：比成功后的 24 小时短，但避免每次打开面板都重复请求。
+    private nonisolated static let failedRetryInterval: TimeInterval = 60 * 60
+    nonisolated static let latestReleasePageURL = URL(string: "https://github.com/\(repoSlug)/releases/latest")!
 
     private(set) var state: UpdateState = .idle
     var autoCheckEnabled: Bool {
@@ -104,12 +108,26 @@ final class UpdateManager {
     /// 面板打开时静默检查（默认开启，24 小时内最多请求一次 GitHub API）。
     func checkOnLaunchIfNeeded() {
         guard autoCheckEnabled else { return }
-        if let last = UserDefaults.standard.object(forKey: Self.lastCheckKey) as? Date,
-            Date().timeIntervalSince(last) < Self.checkInterval
-        {
+        let defaults = UserDefaults.standard
+        guard Self.shouldAutoCheck(
+            now: Date(),
+            lastSuccess: defaults.object(forKey: Self.lastCheckKey) as? Date,
+            lastFailure: defaults.object(forKey: Self.lastFailedCheckKey) as? Date
+        ) else {
             return
         }
         checkForUpdates(manual: false)
+    }
+
+    /// 成功后 24 小时内不再检查；失败后 1 小时内不再检查（手动检查不受限制）。
+    nonisolated static func shouldAutoCheck(now: Date, lastSuccess: Date?, lastFailure: Date?) -> Bool {
+        if let lastSuccess, now.timeIntervalSince(lastSuccess) < checkInterval {
+            return false
+        }
+        if let lastFailure, now.timeIntervalSince(lastFailure) < failedRetryInterval {
+            return false
+        }
+        return true
     }
 
     /// 主动或静默检查 GitHub Releases 最新版本。
@@ -130,16 +148,21 @@ final class UpdateManager {
         activeTask = Task { [weak self] in
             let outcome = await Self.fetchLatestRelease(currentVersion: current, arch: Self.currentArch)
             guard let self, !Task.isCancelled else { return }
-            UserDefaults.standard.set(Date(), forKey: Self.lastCheckKey)
 
+            let defaults = UserDefaults.standard
             switch outcome {
             case .updateAvailable(let release):
+                defaults.set(Date(), forKey: Self.lastCheckKey)
+                defaults.removeObject(forKey: Self.lastFailedCheckKey)
                 self.state = .available(release)
             case .upToDate:
+                defaults.set(Date(), forKey: Self.lastCheckKey)
+                defaults.removeObject(forKey: Self.lastFailedCheckKey)
                 if manual || self.availableRelease == nil {
                     self.state = .upToDate(Date())
                 }
             case .error(let message):
+                defaults.set(Date(), forKey: Self.lastFailedCheckKey)
                 if manual {
                     self.state = .failed(message)
                 }
@@ -202,6 +225,11 @@ final class UpdateManager {
 
     func openReleasePage(_ release: UpdateRelease) {
         NSWorkspace.shared.open(release.releasePageURL)
+    }
+
+    /// 检查或安装失败时的兜底：打开 GitHub 最新 Release 页手动下载。
+    func openLatestReleasePage() {
+        NSWorkspace.shared.open(Self.latestReleasePageURL)
     }
 
     // MARK: - GitHub API & Parsing (Testable)
@@ -271,6 +299,96 @@ final class UpdateManager {
         )
     }
 
+    /// 从 GitHub Releases 重定向后的页面 URL（`/releases/tag/<tag>`）提取 tag 名。
+    nonisolated static func extractTagName(fromReleaseURL url: URL) -> String? {
+        let components = url.pathComponents
+        guard let releasesIndex = components.firstIndex(of: "releases"),
+            releasesIndex + 2 < components.count,
+            components[releasesIndex + 1] == "tag"
+        else {
+            return nil
+        }
+        let tag = components[releasesIndex + 2].trimmingCharacters(in: .whitespacesAndNewlines)
+        return tag.isEmpty ? nil : tag
+    }
+
+    /// 当 GitHub REST API 触发限流（HTTP 403/429）时，基于 tag 名与约定资产命名（或 `SHA256SUMS.txt`）构造更新元数据。
+    nonisolated static func buildFallbackRelease(
+        tagName: String,
+        currentVersion: String,
+        arch: String,
+        sha256SumsText: String? = nil
+    ) -> UpdateRelease? {
+        guard let latest = SemVer(tagName),
+            let current = SemVer(currentVersion),
+            latest > current
+        else {
+            return nil
+        }
+
+        let cleanVersion = tagName.hasPrefix("v") || tagName.hasPrefix("V")
+            ? String(tagName.dropFirst())
+            : tagName
+
+        let archSuffix = "-\(arch).zip"
+        let assetName: String
+        if let sha256SumsText {
+            let fileNames = parseAssetNames(fromSHA256Sums: sha256SumsText)
+            if let matched = fileNames.first(where: { $0.lowercased().hasSuffix(archSuffix) })
+                ?? fileNames.first(where: {
+                    $0.lowercased().hasSuffix(".zip") && !$0.contains("x86_64") && !$0.contains("arm64")
+                })
+            {
+                assetName = matched
+            } else if !fileNames.isEmpty {
+                // SHA256SUMS.txt 存在但未包含当前架构的 .zip 资产。
+                return nil
+            } else {
+                assetName = "Peek-\(cleanVersion)-\(arch).zip"
+            }
+        } else {
+            assetName = "Peek-\(cleanVersion)-\(arch).zip"
+        }
+
+        guard let encodedTag = tagName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+            let encodedAsset = assetName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+            let downloadURL = URL(string: "https://github.com/\(repoSlug)/releases/download/\(encodedTag)/\(encodedAsset)"),
+            let pageURL = URL(string: "https://github.com/\(repoSlug)/releases/tag/\(encodedTag)")
+        else {
+            return nil
+        }
+
+        let shaURL = URL(string: "https://github.com/\(repoSlug)/releases/download/\(encodedTag)/SHA256SUMS.txt")
+
+        return UpdateRelease(
+            version: cleanVersion,
+            tagName: tagName,
+            notes: "",
+            assetName: assetName,
+            downloadURL: downloadURL,
+            sha256AssetURL: shaURL,
+            releasePageURL: pageURL
+        )
+    }
+
+    /// 从 `SHA256SUMS.txt` 中按行提取所有资产文件名。
+    nonisolated static func parseAssetNames(fromSHA256Sums text: String) -> [String] {
+        var names: [String] = []
+        for rawLine in text.split(whereSeparator: \.isNewline) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            let parts = line.split(maxSplits: 1, whereSeparator: \.isWhitespace)
+            guard parts.count == 2 else { continue }
+            let hash = String(parts[0]).lowercased()
+            let filePart = String(parts[1]).trimmingCharacters(in: .whitespaces)
+            let baseName = URL(fileURLWithPath: filePart).lastPathComponent
+            if hash.count == 64, !baseName.isEmpty {
+                names.append(baseName)
+            }
+        }
+        return names
+    }
+
     /// 解析 `shasum -a 256` 格式文本，按文件名提取期望 SHA-256（小写 hex）。
     nonisolated static func parseSHA256(from text: String, assetName: String) -> String? {
         for rawLine in text.split(whereSeparator: \.isNewline) {
@@ -306,10 +424,9 @@ final class UpdateManager {
         guard let url = URL(string: "https://api.github.com/repos/\(repoSlug)/releases/latest") else {
             return .error(L10n.text("Invalid release URL"))
         }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("Peek/\(currentVersion)", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 10
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -320,11 +437,90 @@ final class UpdateManager {
                 // 尚无已发布的 Release，按最新处理。
                 return .upToDate
             }
+            if http.statusCode == 403 || http.statusCode == 429 || (500..<600).contains(http.statusCode) {
+                // 共享出口 IP（代理/公司网等）容易触发 api.github.com 匿名限流（60 次/小时，返回 403/429），
+                // 自动回退到无 API 限流的 github.com/releases/latest 302 重定向。
+                let fallback = await fetchLatestReleaseViaWebRedirect(currentVersion: currentVersion, arch: arch)
+                if case .error = fallback {
+                    return .error(L10n.text("GitHub API returned HTTP \(http.statusCode)"))
+                }
+                return fallback
+            }
             guard (200..<300).contains(http.statusCode) else {
                 return .error(L10n.text("GitHub API returned HTTP \(http.statusCode)"))
             }
             let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
             if let release = evaluateRelease(payload, currentVersion: currentVersion, arch: arch) {
+                return .updateAvailable(release)
+            }
+            return .upToDate
+        } catch {
+            let fallback = await fetchLatestReleaseViaWebRedirect(currentVersion: currentVersion, arch: arch)
+            if case .error = fallback {
+                return .error(error.localizedDescription)
+            }
+            return fallback
+        }
+    }
+
+    /// 兜底检查：通过 `https://github.com/<repo>/releases/latest` 的重定向地址获取最新 tag，
+    /// 不受 `api.github.com` 60 次/小时匿名限流影响。
+    private nonisolated static func fetchLatestReleaseViaWebRedirect(
+        currentVersion: String,
+        arch: String
+    ) async -> CheckOutcome {
+        var request = URLRequest(url: latestReleasePageURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+        request.httpMethod = "HEAD"
+        request.setValue("Peek/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return .error(L10n.text("Invalid server response"))
+            }
+            if http.statusCode == 404 {
+                return .upToDate
+            }
+            guard (200..<300).contains(http.statusCode), let finalURL = http.url else {
+                return .error(L10n.text("GitHub API returned HTTP \(http.statusCode)"))
+            }
+            guard let tagName = extractTagName(fromReleaseURL: finalURL) else {
+                if finalURL.path.hasSuffix("/releases") {
+                    return .upToDate
+                }
+                return .error(L10n.text("Invalid server response"))
+            }
+
+            guard let latest = SemVer(tagName),
+                let current = SemVer(currentVersion),
+                latest > current
+            else {
+                return .upToDate
+            }
+
+            // 尝试读取 SHA256SUMS.txt 以精确匹配当前架构的 .zip 文件名（同样走 github.com，无 API 限流）。
+            var shaSumsText: String?
+            if let encodedTag = tagName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+                let sumsURL = URL(string: "https://github.com/\(repoSlug)/releases/download/\(encodedTag)/SHA256SUMS.txt")
+            {
+                var sumsRequest = URLRequest(url: sumsURL)
+                sumsRequest.setValue("Peek/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+                sumsRequest.timeoutInterval = 10
+                if let (sumsData, sumsResponse) = try? await URLSession.shared.data(for: sumsRequest),
+                    let sumsHTTP = sumsResponse as? HTTPURLResponse,
+                    (200..<300).contains(sumsHTTP.statusCode),
+                    let text = String(data: sumsData, encoding: .utf8)
+                {
+                    shaSumsText = text
+                }
+            }
+
+            if let release = buildFallbackRelease(
+                tagName: tagName,
+                currentVersion: currentVersion,
+                arch: arch,
+                sha256SumsText: shaSumsText
+            ) {
                 return .updateAvailable(release)
             }
             return .upToDate
