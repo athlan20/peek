@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://peek.yuntianyou.cc/sitemap.xml
