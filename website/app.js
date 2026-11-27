@@ -328,11 +328,13 @@
     const armSize = armAsset?.size ? ` · ${formatBytes(armAsset.size)}` : "";
     const x86Size = x86Asset?.size ? ` · ${formatBytes(x86Asset.size)}` : "";
 
+    const navDlArm = document.getElementById("nav-dl-arm64");
     const dlArm = document.getElementById("dl-arm64");
     const dlX86 = document.getElementById("dl-x86");
     const dlArmMeta = document.getElementById("dl-arm64-meta");
     const dlX86Meta = document.getElementById("dl-x86-meta");
 
+    if (navDlArm) navDlArm.href = armUrl;
     if (dlArm) dlArm.href = armUrl;
     if (dlX86) dlX86.href = x86Url;
     if (dlArmMeta) dlArmMeta.textContent = `arm64 · ${tag}${armSize}`;
