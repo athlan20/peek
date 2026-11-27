@@ -1,6 +1,7 @@
 (() => {
   const REPO = "athlan20/peek";
-  const FALLBACK_VERSION = "0.1.4";
+  const LATEST_RELEASE_URL = `https://github.com/${REPO}/releases/latest`;
+  const FALLBACK_VERSION = "0.1.7";
   const THEME_STORAGE_KEY = "peek-website-theme";
 
   const I18N = {
@@ -318,11 +319,11 @@
       releaseMeta.textContent = I18N[currentLang]["hero.releaseLoading"].replace("{ver}", version);
     }
 
-    const fallbackArmUrl = `https://github.com/${REPO}/releases/download/${tag}/Peek-${version}-arm64.dmg`;
-    const fallbackX86Url = `https://github.com/${REPO}/releases/download/${tag}/Peek-${version}-x86_64.dmg`;
+    const armUrl = armAsset?.browser_download_url || LATEST_RELEASE_URL;
+    const x86Url = x86Asset?.browser_download_url || LATEST_RELEASE_URL;
 
-    const armUrl = armAsset?.browser_download_url || fallbackArmUrl;
-    const x86Url = x86Asset?.browser_download_url || fallbackX86Url;
+    const armName = armAsset?.name || `Peek-${version}-arm64.dmg`;
+    const x86Name = x86Asset?.name || `Peek-${version}-x86_64.dmg`;
 
     const armSize = armAsset?.size ? ` · ${formatBytes(armAsset.size)}` : "";
     const x86Size = x86Asset?.size ? ` · ${formatBytes(x86Asset.size)}` : "";
@@ -344,8 +345,8 @@
 
     if (installArm) installArm.href = armUrl;
     if (installX86) installX86.href = x86Url;
-    if (installArmFile) installArmFile.textContent = `Peek-${version}-arm64.dmg${armSize}`;
-    if (installX86File) installX86File.textContent = `Peek-${version}-x86_64.dmg${x86Size}`;
+    if (installArmFile) installArmFile.textContent = `${armName}${armSize}`;
+    if (installX86File) installX86File.textContent = `${x86Name}${x86Size}`;
   }
 
   async function fetchLatestRelease() {
